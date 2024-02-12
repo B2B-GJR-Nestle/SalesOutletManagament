@@ -96,6 +96,7 @@ def plot_map(df, initial_centroids, initial_kmeans_labels, initial_centroid_sale
 
     return st.components.v1.html(m._repr_html_(), width=700, height=500)
 
+
 def main():
     st.title("🌏Outlet Management Tools")
     # Load data
@@ -133,7 +134,7 @@ def main():
         # Display the initial map
         st.markdown(f"## Salesman Coverage Map")
         map_html = plot_map(df, initial_centroids, initial_kmeans_labels, initial_centroid_salesman, salesman_mapping, bekasi_geojson_path, unique_salesmen)
-        st.write(st.components.v1.html(map_html, width=700, height=500))
+        st.write(map_html)
 
 if __name__ == "__main__":
     main()
