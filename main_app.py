@@ -9,9 +9,11 @@ st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon="🚶
 
 def load_data():
     # Load or initialize your dataframe here
-    return pd.DataFrame()
+    if 'data' not in st.session_state:
+        st.session_state.data = pd.DataFrame()
+    return st.session_state.data
 
-def plot_map(df, centroids, labels, initial_centroid_salesman, salesman_mapping, bekasi_geojson_path, unique_salesmen):
+def plot_map(df, initial_centroids, initial_kmeans_labels, initial_centroid_salesman, salesman_mapping, bekasi_geojson_path, unique_salesmen):
     center_lat = df['Latitude'].mean()
     center_lon = df['Longitude'].mean()
     m = folium.Map(location=[center_lat, center_lon], zoom_start=10)
@@ -53,7 +55,7 @@ def plot_map(df, centroids, labels, initial_centroid_salesman, salesman_mapping,
 
     # Iterate through the outlets and calculate the most appearing salesman for each center coordinate
     for i, row in df.iterrows():
-        center_coords = tuple(centroids[labels[i]])  # Convert NumPy array to tuple
+        center_coords = tuple(initial_centroids[initial_kmeans_labels[i]])  # Convert NumPy array to tuple
         salesman_name = row['Salesman']
         if center_coords not in center_salesman:
             center_salesman[center_coords] = {}
@@ -85,23 +87,19 @@ def plot_map(df, centroids, labels, initial_centroid_salesman, salesman_mapping,
 
     for i, row in df.iterrows():
         outlet_coords = [row['Latitude'], row['Longitude']]
-        salesman_center_coords = centroids[labels[i]]
+        salesman_center_coords = initial_centroids[initial_kmeans_labels[i]]
         salesman_color = salesman_color_dict.get(row['Salesman'], default_color)  # Use default color for missing salesman
         folium.PolyLine([outlet_coords, salesman_center_coords], color=salesman_color, weight=3, opacity=0.5).add_to(m)
 
     # Add layer control for KECAMATAN layers
     folium.LayerControl().add_to(m)
 
-    return m._repr_html_()
+    return st.components.v1.html(m._repr_html_(), width=700, height=500)
 
 def main():
     st.title("🌏Outlet Management Tools")
     # Load data
     df = load_data()
-
-    # Initialize session state
-    if 'new_outlets' not in st.session_state:
-        st.session_state.new_outlets = []
 
     # Step 1: Allow users to upload a sales database file (Excel or CSV format)
     uploaded_file = st.file_uploader("Upload Sales Database (Excel or CSV)", type=["xlsx", "csv"])
@@ -112,13 +110,9 @@ def main():
         else:
             new_data = pd.read_csv(uploaded_file)
 
-        # Concatenate the new data with existing dataframe
-        df = pd.concat([df, new_data], ignore_index=True)
-
-    # Step 2: Cluster the initial outlets and calculate centroids
-    if st.session_state.new_outlets:
-        new_outlets_df = pd.DataFrame(st.session_state.new_outlets)
-        df = pd.concat([df, new_outlets_df], ignore_index=True)
+        # Replace the existing data with the new data
+        df = new_data
+        st.session_state.data = df
 
     # Continue with your clustering logic only if the dataframe is not empty
     if not df.empty:
@@ -136,24 +130,10 @@ def main():
         # GeoJSON file path for KECAMATAN borders
         bekasi_geojson_path = "kabkot_bekasi.geojson"
 
-        st.markdown(f"## Initial Salesman Coverage Map")
-        st.components.v1.html(plot_map(df, initial_centroids, initial_kmeans_labels, initial_centroid_salesman, salesman_mapping, bekasi_geojson_path, unique_salesmen), width=700, height=500)
-
-        # Step 3: Accept new longitude, latitude, and outlet information from the user
-        st.sidebar.markdown("## Delete Outlet")
-        outlet_to_delete = st.sidebar.selectbox("Select Outlet to Delete", df['Outlet'])
-        if st.sidebar.button("Delete Outlet"):
-            df = df[df['Outlet'] != outlet_to_delete].reset_index(drop=True)
-
-            # Refresh the page to update the map with the deleted outlet
-            st.experimental_rerun()
-
-    else:
-        st.warning("Please upload a sales database file.")
-
-    # Display the combined dataframe
-    st.sidebar.markdown("## Outlets Data")
-    st.sidebar.write(df)
+        # Display the initial map
+        st.markdown(f"## Salesman Coverage Map")
+        map_html = plot_map(df, initial_centroids, initial_kmeans_labels, initial_centroid_salesman, salesman_mapping, bekasi_geojson_path, unique_salesmen)
+        st.write(st.components.v1.html(map_html, width=700, height=500))
 
 if __name__ == "__main__":
     main()
