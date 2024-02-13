@@ -1,34 +1,35 @@
 import streamlit as st
 import pandas as pd
 import folium
-import numpy as np
+from geopy.distance import geodesic
+import requests
+from polyline import decode
 
 st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon="🚶‍♂️")
 
-# Function to calculate distance using Haversine formula
-def haversine(lon1, lat1, lon2, lat2):
-    """
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
-    """
-    # Convert decimal degrees to radians
-    lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
+# Function to calculate distance using geodesic distance (haversine formula)
+def calculate_distance(origin, destination):
+    return geodesic(origin, destination).kilometers
 
-    # Haversine formula
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
-    c = 2 * np.arcsin(np.sqrt(a))
-    r = 6371  # Radius of earth in kilometers. Use 3956 for miles
-    return c * r
+# Function to get route polyline from OSRM API
+def get_route_polyline(origin, destination):
+    base_url = "http://router.project-osrm.org/route/v1/driving/"
+    params = f"{origin[1]},{origin[0]};{destination[1]},{destination[0]}"
+    response = requests.get(base_url + params)
+    if response.status_code == 200:
+        route_data = response.json()
+        if 'routes' in route_data and len(route_data['routes']) > 0:
+            polyline = route_data['routes'][0]['geometry']
+            return decode(polyline)
+    return []
 
-# Function to generate scheduling
+# Function to generate scheduling with balanced visit orders across days
 def generate_scheduling(df):
     # Sort dataframe by 'Salesman' and 'Outlet' columns
     df = df.sort_values(by=['Salesman', 'Outlet'])
 
     # Get unique office location
-    office_lat, office_lon = df.iloc[0]['Latitude'], df.iloc[0]['Longitude']
+    office_location = (df.iloc[0]['Latitude'], df.iloc[0]['Longitude'])
 
     # Create a dictionary to store visit orders and distances
     visit_orders = {}
@@ -36,29 +37,66 @@ def generate_scheduling(df):
     # Generate visit orders for each salesman
     for salesman, group in df.groupby('Salesman'):
         visit_orders[salesman] = {}
-        day_counter = 0
-        visit_order = 1
 
-        for _, row in group.iterrows():
-            outlet = row['Outlet']
-            outlet_lat, outlet_lon = row['Latitude'], row['Longitude']
-            distance = haversine(office_lon, office_lat, outlet_lon, outlet_lat)
+        # Initialize visit orders for each day
+        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']:
+            visit_orders[salesman][day] = {}
 
-            if day_counter >= 5:  # If already visited five outlets, move to the next day
-                day_counter = 0
+        # Split outlets into days and find nearest outlet for each day
+        outlets = group['Outlet'].tolist()  # Get outlets for the current salesman
+        num_outlets = len(outlets)
+        day_counter = 0  # Initialize day counter
+        visit_order = 1  # Initialize visit order
+
+        while outlets:
+            current_day = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'][day_counter]
+
+            # Take up to 5 outlets for the current day
+            outlets_today = outlets[:5]
+            outlets = outlets[5:]
+
+            # Find nearest outlet from office and make it visit order 1
+            outlet_distances = {}
+            for outlet in outlets_today:
+                outlet_location = (group[group['Outlet'] == outlet]['Latitude'].iloc[0], group[group['Outlet'] == outlet]['Longitude'].iloc[0])
+                distance = calculate_distance(office_location, outlet_location)
+                outlet_distances[outlet] = distance
+
+            nearest_outlet = min(outlet_distances, key=outlet_distances.get)
+            visit_orders[salesman][current_day][1] = {'Outlet': nearest_outlet, 'Distance': outlet_distances[nearest_outlet], 'Coordinates': (group[group['Outlet'] == nearest_outlet]['Latitude'].iloc[0], group[group['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
+
+            # Remove the nearest outlet from the list of outlets
+            outlets_today.remove(nearest_outlet)
+
+            # Generate visit orders for the rest of the outlets
+            for outlet in outlets_today:
+                if visit_order > 5:
+                    visit_order = 1
+                    day_counter += 1
+                    if day_counter >= 5:  # If reached the last day, stop assigning visit orders
+                        break
+
+                # Calculate distance to the current outlet
+                outlet_location = (group[group['Outlet'] == outlet]['Latitude'].iloc[0], group[group['Outlet'] == outlet]['Longitude'].iloc[0])
+                distance = calculate_distance(visit_orders[salesman][current_day][visit_order]['Coordinates'], outlet_location)
+
+                # Assign outlet to the current day and visit order
+                visit_orders[salesman][current_day][visit_order + 1] = {'Outlet': outlet, 'Distance': distance, 'Coordinates': outlet_location}
+
+                # Increment visit order
                 visit_order += 1
-            day = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'][day_counter]
-            if day not in visit_orders[salesman]:
-                visit_orders[salesman][day] = {}
-            visit_orders[salesman][day][visit_order] = {'Outlet': outlet, 'Distance': distance, 'Coordinates': (outlet_lat, outlet_lon)}
-            day_counter += 1
 
-    # Generate scheduling DataFrame
+            # Move to the next day
+            day_counter += 1
+            visit_order = 1
+
+    # Convert visit orders dictionary into a DataFrame
     scheduling_data = []
-    for salesman, days in visit_orders.items():
-        for day, visit_orders in days.items():
+    for salesman, days_data in visit_orders.items():
+        for day, visit_orders in days_data.items():
             for visit_order, data in visit_orders.items():
                 scheduling_data.append([salesman, day, visit_order, data['Outlet'], data['Distance'], data['Coordinates']])
+
     scheduling_df = pd.DataFrame(scheduling_data, columns=['Salesman', 'Day', 'Visit Order', 'Outlet', 'Distance', 'Coordinates'])
 
     # Merge scheduling_df with longitude and latitude columns
@@ -70,7 +108,11 @@ def generate_scheduling(df):
 def filter_schedule(scheduling_df, salesman):
     return scheduling_df[scheduling_df['Salesman'] == salesman]
 
-import random
+# Function to generate Folium map
+# Function to create a text-based icon for the visit order number
+def create_visit_order_icon(visit_order):
+    return folium.DivIcon(html=f'<div style="font-size: 12pt; color: white; background-color: #645440; border-radius: 50%; '
+                                f'width: 20px; height: 20px; line-height: 20px; text-align: center;">{visit_order}</div>')
 
 # Function to generate Folium map
 def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude, map_width=800, map_height=600):
@@ -103,20 +145,34 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
             # Assign color for marker and polyline based on day
             marker_color = day_colors.get(day, 'black')
 
+            # Create icon with visit order number
+            icon = create_visit_order_icon(visit_order)
+
             # Add marker for outlet
             popup_message = f"{outlet_name} - Visit Order: {visit_order} - Day: {day}"
-            folium.Marker(location=[outlet_lat, outlet_lon], popup=popup_message, icon=folium.Icon(color=marker_color)).add_to(m)
+            folium.Marker(location=[outlet_lat, outlet_lon], popup=popup_message, icon=icon).add_to(m)
 
             # Connect to previous outlet if in the same day and consecutive visit order
             if prev_outlet_day == day and prev_outlet_visit_order == visit_order - 1:
-                locations = [prev_outlet_location, (outlet_lat, outlet_lon)]
-                polyline_color = day_colors.get(day, 'black')
-                folium.PolyLine(locations=locations, color=polyline_color).add_to(m)
+                # Get coordinates for the previous outlet
+                prev_outlet_lat = prev_outlet_location[0]
+                prev_outlet_lon = prev_outlet_location[1]
+                
+                # Get route polyline from the previous outlet to the current outlet
+                locations = get_route_polyline((prev_outlet_lat, prev_outlet_lon), (outlet_lat, outlet_lon))
+                
+                # If route is available, add polyline to the map
+                if locations:
+                    polyline_color = day_colors.get(day, 'black')
+                    folium.PolyLine(locations=locations, color=polyline_color).add_to(m)
 
             # Connect outlet with Visit Order 1 to office
             if visit_order == 1:
                 polyline_color = marker_color
-                folium.PolyLine(locations=[(office_latitude, office_longitude), (outlet_lat, outlet_lon)], color=polyline_color).add_to(m)
+                # Get route polyline from office to outlet
+                locations = get_route_polyline((office_latitude, office_longitude), (outlet_lat, outlet_lon))
+                if locations:
+                    folium.PolyLine(locations=locations, color=polyline_color).add_to(m)
 
             # Update variables for next iteration
             prev_outlet_day = day
@@ -142,10 +198,6 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
     return m_html
 
 
-
-
-
-
 # Streamlit UI
 st.title('📅Salesman Scheduling Dashboard')
 
@@ -159,28 +211,35 @@ if uploaded_file is not None:
             df = pd.read_csv(uploaded_file)
         else:
             df = pd.read_excel(uploaded_file)
-        st.write("Data Preview:")
-        st.write(df.head())
+        st.sidebar.write("Data Preview:")
+        st.sidebar.write(df.head())
 
         # Generate scheduling
         scheduling_df = generate_scheduling(df)
 
         # Filter by salesman
         salesmen = scheduling_df['Salesman'].unique()
-        selected_salesman = st.selectbox("Select salesman:", salesmen)
+        selected_salesman = st.sidebar.selectbox("Select salesman:", salesmen)
         filtered_schedule = filter_schedule(scheduling_df, selected_salesman)
 
+        # Filter by day
+        days = scheduling_df['Day'].unique()
+        selected_day = st.sidebar.selectbox("Select day:", days)
+        filtered_schedule = filtered_schedule[filtered_schedule['Day'] == selected_day]
+
         # Display filtered scheduling
-        st.write("Generated Scheduling for", selected_salesman)
+        st.write("Generated Scheduling for", selected_salesman, "on", selected_day)
         st.write(filtered_schedule)
 
-        # Display Folium map
-        st.write("Map showing connections for", selected_salesman)
-        office_latitude = -6.282723
-        office_longitude = 106.989738
-        folium_map_html = generate_folium_map(df, filtered_schedule, office_latitude, office_longitude)
-        #folium_map_html = generate_folium_map(df, filtered_schedule)
-        st.components.v1.html(folium_map_html,width=700, height=500)
+        # Display Folium map if schedule is not empty
+        if not filtered_schedule.empty:
+            st.write("Map showing connections for", selected_salesman, "on", selected_day)
+            office_latitude = -6.282723
+            office_longitude = 106.989738
+            folium_map_html = generate_folium_map(df, filtered_schedule, office_latitude, office_longitude)
+            st.components.v1.html(folium_map_html, width=825, height=550)
+        else:
+            st.write(f"{selected_salesman} Has No Visit Schedule on {selected_day}")
 
     except Exception as e:
         st.write("An error occurred:", e)
