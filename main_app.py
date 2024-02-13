@@ -5,6 +5,8 @@ import folium
 from folium.plugins import MarkerCluster
 from sklearn.cluster import KMeans
 
+st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon="🚶‍♂️")
+
 def load_data():
     # Load or initialize your dataframe here
     return pd.DataFrame()
