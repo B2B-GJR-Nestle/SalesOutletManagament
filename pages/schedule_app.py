@@ -153,7 +153,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
     # Add marker for the office with emoji
     folium.Marker(
         location=[office_latitude, office_longitude],
-        popup="Office",
+        popup="PT. RMS BEKASI🏢",
         icon=folium.Icon(color='green', icon='briefcase', prefix='fa')
     ).add_to(m)
 
@@ -181,7 +181,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
             icon = create_visit_order_icon(visit_order)
 
             # Add marker for outlet
-            popup_message = f"{outlet_name} - Visit Order: {visit_order} - Day: {day}"
+            popup_message = f"{outlet_name} \n Day: {day}"
             folium.Marker(location=[outlet_lat, outlet_lon], popup=popup_message, icon=icon).add_to(m)
 
             # Connect to previous outlet if in the same day and consecutive visit order
@@ -265,7 +265,7 @@ if uploaded_file is not None:
 
         # Display Folium map if schedule is not empty
         if not filtered_schedule.empty:
-            st.write("Map showing connections for", selected_salesman, "on", selected_day)
+            st.write("📍 Map showing connections for", selected_salesman, "on", selected_day, "that need to visit",filtered_schedule['Distance'].count() ,"outlet(s) around", filtered_schedule['Distance'].sum(),"km")
             office_latitude = -6.282723
             office_longitude = 106.989738
             folium_map_html = generate_folium_map(df, filtered_schedule, office_latitude, office_longitude)
