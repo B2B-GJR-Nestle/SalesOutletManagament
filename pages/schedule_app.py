@@ -81,26 +81,43 @@ def generate_scheduling(df):
             outlets_today.remove(nearest_outlet)
 
             # Generate visit orders for the rest of the outlets
-            for outlet in outlets_today:
+            visit_order = 1  # Reset visit order for each new day
+            while outlets_today:
                 if visit_order > 5:
                     visit_order = 1
                     day_counter += 1
                     if day_counter >= 5:  # If reached the last day, stop assigning visit orders
                         break
 
-                # Calculate distance to the current outlet
-                outlet_location = (group[group['Outlet'] == outlet]['Latitude'].iloc[0], group[group['Outlet'] == outlet]['Longitude'].iloc[0])
-                distance = calculate_distance(visit_orders[salesman][current_day][visit_order]['Coordinates'], outlet_location)
+                # Get the location of the last assigned outlet
+                last_assigned_outlet = visit_orders[salesman][current_day][visit_order]['Coordinates']
 
-                # Assign outlet to the current day and visit order
-                visit_orders[salesman][current_day][visit_order + 1] = {'Outlet': outlet, 'Distance': distance, 'Coordinates': outlet_location}
+                # Initialize variables to track the nearest outlet and its distance
+                nearest_outlet = None
+                nearest_distance = float('inf')
+
+                # Find the nearest outlet relative to the last assigned outlet
+                for outlet in outlets_today:
+                    outlet_location = (group[group['Outlet'] == outlet]['Latitude'].iloc[0], group[group['Outlet'] == outlet]['Longitude'].iloc[0])
+                    distance = calculate_distance(last_assigned_outlet, outlet_location)
+
+                    # Update nearest outlet and distance if the current outlet is closer
+                    if distance < nearest_distance:
+                        nearest_outlet = outlet
+                        nearest_distance = distance
+
+                # Assign the nearest outlet to the current day and visit order
+                visit_orders[salesman][current_day][visit_order + 1] = {'Outlet': nearest_outlet, 'Distance': nearest_distance, 'Coordinates': (group[group['Outlet'] == nearest_outlet]['Latitude'].iloc[0], group[group['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
+
+                # Remove the nearest outlet from the list of outlets
+                outlets_today.remove(nearest_outlet)
 
                 # Increment visit order
                 visit_order += 1
 
             # Move to the next day
             day_counter += 1
-            visit_order = 1
+
 
     # Convert visit orders dictionary into a DataFrame
     scheduling_data = []
