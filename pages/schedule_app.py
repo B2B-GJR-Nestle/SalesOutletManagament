@@ -266,7 +266,7 @@ if uploaded_file is not None:
         # Display Folium map if schedule is not empty
         if not filtered_schedule.empty:
             #st.write("📍 Map showing connections for", selected_salesman, "on", selected_day, "that need to visit",filtered_schedule['Distance'].count() ,"outlet(s) around", filtered_schedule['Distance'].sum(),"km")
-            st.markdown(f'<span style="font-size:16px;">📍 Map showing connections for {selected_salesman} on {selected_day} that need to visit {filtered_schedule["Distance"].count()} outlet(s) around <b>{filtered_schedule["Distance"].sum()} km<b></span>', unsafe_allow_html=True)
+            st.markdown(f'<span style="font-size:16px;">📍 Map showing connections for {selected_salesman} on {selected_day} that need to visit {filtered_schedule["Distance"].count()} outlet(s) around <b>{round(filtered_schedule["Distance"].sum(),3)} km<b></span>', unsafe_allow_html=True)
             office_latitude = -6.282723
             office_longitude = 106.989738
             folium_map_html = generate_folium_map(df, filtered_schedule, office_latitude, office_longitude)
