@@ -13,6 +13,10 @@ def load_data():
 
 def main():
     st.title("🌏Outlet Management Tools")
+    st.sidebar.image("Nestle_Signature.png")
+    st.sidebar.write("""<p style='font-size: 14px;'>This Web-App is designed to facilitate B2B executive to email blasts for PT Nestlé Indonesia Customer made by <b>Nestlé Management Trainee 2023<b> (Nestea)</p>""", unsafe_allow_html=True)
+    st.sidebar.write("""<p style='font-size: 13px;'>For any inquiries, error handling, or assistance, please feel free to reach us through Email: <a href="mailto:Ananda.Cahyo@id.nestle.com,Duta.Gongga@id.nestle.com,Tiara.Zahra@id.nestle.com,Tiffany.Ruth@id.nestle.com">Ananda.Cahyo@id.nestle.com,<br>Duta.Gongga@id.nestle.com,<br>Tiara.Zahra@id.nestle.com,<br>Tiffany.Ruth@id.nestle.com</a></p>""", unsafe_allow_html=True)
+
     # Load data
     df = load_data()
 
