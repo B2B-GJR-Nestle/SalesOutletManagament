@@ -9,11 +9,14 @@ from PIL import Image
 img = Image.open('Nestle_Logo.png')
 st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon=img)
 
+#Limit visit per day
+limit = 5
+
 # Function to calculate distance using geodesic distance (haversine formula)
-def calculate_distance(origin, destination):
+def calculate_distances(origin, destination):
     return geodesic(origin, destination).kilometers
 
-def calculate_distances(origin, destination):
+def calculate_distance(origin, destination):
     base_url = "http://router.project-osrm.org/route/v1/driving/"
     params = f"{origin[1]},{origin[0]};{destination[1]},{destination[0]}"
     response = requests.get(base_url + params)
@@ -51,7 +54,7 @@ def generate_scheduling(df):
         visit_orders[salesman] = {}
 
         # Initialize visit orders for each day
-        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']:
+        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
             visit_orders[salesman][day] = {}
 
         # Split outlets into days and find nearest outlet for each day
@@ -61,11 +64,11 @@ def generate_scheduling(df):
         visit_order = 1  # Initialize visit order
 
         while outlets:
-            current_day = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'][day_counter]
+            current_day = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day_counter]
 
-            # Take up to 5 outlets for the current day
-            outlets_today = outlets[:5]
-            outlets = outlets[5:]
+            # Take up to limit(5) outlets for the current day
+            outlets_today = outlets[:limit]
+            outlets = outlets[limit:]
 
             # Find nearest outlet from office and make it visit order 1
             outlet_distances = {}
@@ -83,10 +86,10 @@ def generate_scheduling(df):
             # Generate visit orders for the rest of the outlets
             visit_order = 1  # Reset visit order for each new day
             while outlets_today:
-                if visit_order > 5:
+                if visit_order > limit:
                     visit_order = 1
                     day_counter += 1
-                    if day_counter >= 5:  # If reached the last day, stop assigning visit orders
+                    if day_counter >= limit:  # If reached the last day, stop assigning visit orders
                         break
 
                 # Get the location of the last assigned outlet
