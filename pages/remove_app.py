@@ -4,8 +4,10 @@ import streamlit as st
 import folium
 from folium.plugins import MarkerCluster
 from sklearn.cluster import KMeans
+from PIL import Image
 
-st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon="🚶‍♂️")
+img = Image.open('Nestle_Logo.png')
+st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon=img)
 
 def load_data():
     # Load or initialize your dataframe here
@@ -158,6 +160,11 @@ def main():
 
     else:
         st.warning("Please upload a sales database file.")
+    
+    st.sidebar.image("Nestle_Signature.png")
+    st.sidebar.write("""<p style='font-size: 14px;'>This Web-App is designed to facilitate HOA or Distributor to generate alternative scheduling for salesman journey plan made by <b>Nestlé Management Trainee 2023<b></p>""", unsafe_allow_html=True)
+    st.sidebar.write("""<p style='font-size: 13px;'>For any inquiries, error handling, or assistance, please feel free to reach us through Email: <a href="mailto:Ananda.Cahyo@id.nestle.com">Ananda.Cahyo@id.nestle.com</a></p>""", unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     main()
