@@ -4,8 +4,10 @@ import folium
 from geopy.distance import geodesic
 import requests
 from polyline import decode
+from PIL import Image
 
-st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon="🚶‍♂️")
+img = Image.open('Nestle_Logo.png')
+st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon=img)
 
 # Function to calculate distance using geodesic distance (haversine formula)
 def calculate_distance(origin, destination):
@@ -243,3 +245,8 @@ if uploaded_file is not None:
 
     except Exception as e:
         st.write("An error occurred:", e)
+
+st.sidebar.image("Nestle_Signature.png")
+st.sidebar.write("""<p style='font-size: 14px;'>This Web-App is designed to facilitate HOA or Distributor to generate alternative scheduling for salesman journey plan made by <b>Nestlé Management Trainee 2023<b></p>""", unsafe_allow_html=True)
+st.sidebar.write("""<p style='font-size: 13px;'>For any inquiries, error handling, or assistance, please feel free to reach us through Email: <a href="mailto:Ananda.Cahyo@id.nestle.com">Ananda.Cahyo@id.nestle.com</a></p>""", unsafe_allow_html=True)
+
