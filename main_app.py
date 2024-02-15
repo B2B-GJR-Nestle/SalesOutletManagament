@@ -4,8 +4,10 @@ import streamlit as st
 import folium
 from folium.plugins import MarkerCluster
 from sklearn.cluster import KMeans
+from PIL import Image
 
-st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon="🌏")
+img = Image.open('Nestle_Logo.png')
+st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon=img)
 
 def load_data():
     # Load or initialize your dataframe here
