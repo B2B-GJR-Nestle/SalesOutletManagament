@@ -5,17 +5,26 @@ from geopy.distance import geodesic
 import requests
 from polyline import decode
 from PIL import Image
-from concurrent.futures import ThreadPoolExecutor
 
 img = Image.open('Nestle_Logo.png')
 st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon=img)
 
-# Limit visit per day
+#Limit visit per day
 limit = 25
 
 # Function to calculate distance using geodesic distance (haversine formula)
-def calculate_distance(origin, destination):
+def calculate_distances(origin, destination):
     return geodesic(origin, destination).kilometers
+
+def calculate_distance(origin, destination):
+    base_url = "http://router.project-osrm.org/route/v1/driving/"
+    params = f"{origin[1]},{origin[0]};{destination[1]},{destination[0]}"
+    response = requests.get(base_url + params)
+    if response.status_code == 200:
+        route_data = response.json()
+        if 'routes' in route_data and len(route_data['routes']) > 0:
+            return route_data['routes'][0]['distance'] / 1000  # Convert meters to kilometers
+    return None
 
 # Function to get route polyline from OSRM API
 def get_route_polyline(origin, destination):
@@ -31,72 +40,102 @@ def get_route_polyline(origin, destination):
 
 # Function to generate scheduling with balanced visit orders across days
 def generate_scheduling(df):
-    visit_orders = {}
+    # Sort dataframe by 'Salesman' and 'Outlet' columns
+    df = df.sort_values(by=['Salesman', 'Outlet'])
+
+    # Get unique office location
     office_location = (df.iloc[0]['Latitude'], df.iloc[0]['Longitude'])
 
-    # Initialize visit orders for each day
-    for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
-        visit_orders[day] = {}
+    # Create a dictionary to store visit orders and distances
+    visit_orders = {}
 
-    # Split outlets into days and find nearest outlet for each day
-    outlets = df['Outlet'].tolist()
-    num_outlets = len(outlets)
-    day_counter = 0
-    visit_order = 1
+    # Generate visit orders for each salesman
+    for salesman, group in df.groupby('Salesman'):
+        visit_orders[salesman] = {}
 
-    while outlets:
-        current_day = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day_counter]
+        # Initialize visit orders for each day
+        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
+            visit_orders[salesman][day] = {}
 
-        # Take up to limit outlets for the current day
-        outlets_today = outlets[:limit]
-        outlets = outlets[limit:]
+        # Split outlets into days and find nearest outlet for each day
+        outlets = group['Outlet'].tolist()  # Get outlets for the current salesman
+        num_outlets = len(outlets)
+        day_counter = 0  # Initialize day counter
+        visit_order = 1  # Initialize visit order
 
-        # Define the function to calculate distances concurrently
-        def calculate_distances_concurrently(outlet):
-            outlet_location = (df[df['Outlet'] == outlet]['Latitude'].iloc[0], df[df['Outlet'] == outlet]['Longitude'].iloc[0])
-            return outlet, calculate_distance(office_location, outlet_location)
+        while outlets:
+            current_day = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day_counter]
 
-        # Calculate distances between office and outlets concurrently
-        with ThreadPoolExecutor() as executor:
-            outlet_distances = dict(executor.map(calculate_distances_concurrently, outlets_today))
+            # Take up to limit(5) outlets for the current day
+            outlets_today = outlets[:limit]
+            outlets = outlets[limit:]
 
-        # Find nearest outlet from office and make it visit order 1
-        nearest_outlet = min(outlet_distances, key=outlet_distances.get)
-        visit_orders[current_day][1] = {'Outlet': nearest_outlet, 'Distance': outlet_distances[nearest_outlet], 'Coordinates': (df[df['Outlet'] == nearest_outlet]['Latitude'].iloc[0], df[df['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
-
-        # Remove the nearest outlet from the list of outlets
-        outlets_today.remove(nearest_outlet)
-
-        # Generate visit orders for the rest of the outlets
-        visit_order = 1
-        while outlets_today:
-            if visit_order > limit:
-                visit_order = 1
-                day_counter += 1
-                if day_counter >= limit:
-                    break
-
-            last_assigned_outlet = visit_orders[current_day][visit_order]['Coordinates']
-            nearest_outlet = None
-            nearest_distance = float('inf')
-
-            # Find the nearest outlet relative to the last assigned outlet
+            # Find nearest outlet from office and make it visit order 1
+            outlet_distances = {}
             for outlet in outlets_today:
-                outlet_location = (df[df['Outlet'] == outlet]['Latitude'].iloc[0], df[df['Outlet'] == outlet]['Longitude'].iloc[0])
-                distance = calculate_distance(last_assigned_outlet, outlet_location)
-                if distance < nearest_distance:
-                    nearest_outlet = outlet
-                    nearest_distance = distance
+                outlet_location = (group[group['Outlet'] == outlet]['Latitude'].iloc[0], group[group['Outlet'] == outlet]['Longitude'].iloc[0])
+                distance = calculate_distance(office_location, outlet_location)
+                outlet_distances[outlet] = distance
 
-            # Assign the nearest outlet to the current day and visit order
-            visit_orders[current_day][visit_order + 1] = {'Outlet': nearest_outlet, 'Distance': nearest_distance, 'Coordinates': (df[df['Outlet'] == nearest_outlet]['Latitude'].iloc[0], df[df['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
+            nearest_outlet = min(outlet_distances, key=outlet_distances.get)
+            visit_orders[salesman][current_day][1] = {'Outlet': nearest_outlet, 'Distance': outlet_distances[nearest_outlet], 'Coordinates': (group[group['Outlet'] == nearest_outlet]['Latitude'].iloc[0], group[group['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
+
+            # Remove the nearest outlet from the list of outlets
             outlets_today.remove(nearest_outlet)
-            visit_order += 1
 
-        day_counter += 1
+            # Generate visit orders for the rest of the outlets
+            visit_order = 1  # Reset visit order for each new day
+            while outlets_today:
+                if visit_order > limit:
+                    visit_order = 1
+                    day_counter += 1
+                    if day_counter >= limit:  # If reached the last day, stop assigning visit orders
+                        break
 
-    return visit_orders
-    
+                # Get the location of the last assigned outlet
+                last_assigned_outlet = visit_orders[salesman][current_day][visit_order]['Coordinates']
+
+                # Initialize variables to track the nearest outlet and its distance
+                nearest_outlet = None
+                nearest_distance = float('inf')
+
+                # Find the nearest outlet relative to the last assigned outlet
+                for outlet in outlets_today:
+                    outlet_location = (group[group['Outlet'] == outlet]['Latitude'].iloc[0], group[group['Outlet'] == outlet]['Longitude'].iloc[0])
+                    distance = calculate_distance(last_assigned_outlet, outlet_location)
+
+                    # Update nearest outlet and distance if the current outlet is closer
+                    if distance < nearest_distance:
+                        nearest_outlet = outlet
+                        nearest_distance = distance
+
+                # Assign the nearest outlet to the current day and visit order
+                visit_orders[salesman][current_day][visit_order + 1] = {'Outlet': nearest_outlet, 'Distance': nearest_distance, 'Coordinates': (group[group['Outlet'] == nearest_outlet]['Latitude'].iloc[0], group[group['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
+
+                # Remove the nearest outlet from the list of outlets
+                outlets_today.remove(nearest_outlet)
+
+                # Increment visit order
+                visit_order += 1
+
+            # Move to the next day
+            day_counter += 1
+
+
+    # Convert visit orders dictionary into a DataFrame
+    scheduling_data = []
+    for salesman, days_data in visit_orders.items():
+        for day, visit_orders in days_data.items():
+            for visit_order, data in visit_orders.items():
+                scheduling_data.append([salesman, day, visit_order, data['Outlet'], data['Distance'], data['Coordinates']])
+
+    scheduling_df = pd.DataFrame(scheduling_data, columns=['Salesman', 'Day', 'Visit Order', 'Outlet', 'Distance', 'Coordinates'])
+
+    # Merge scheduling_df with longitude and latitude columns
+    scheduling_df = pd.merge(scheduling_df, df[['Outlet', 'Latitude', 'Longitude']], on='Outlet')
+
+    return scheduling_df
+
 # Function to filter scheduling DataFrame by salesman
 def filter_schedule(scheduling_df, salesman):
     return scheduling_df[scheduling_df['Salesman'] == salesman]
@@ -241,4 +280,3 @@ if uploaded_file is not None:
 st.sidebar.image("Nestle_Signature.png")
 st.sidebar.write("""<p style='font-size: 14px;'>This Web-App is designed to facilitate HOA or Distributor to generate alternative scheduling for salesman journey plan made by <b>Nestlé Management Trainee 2023<b></p>""", unsafe_allow_html=True)
 st.sidebar.write("""<p style='font-size: 13px;'>For any inquiries, error handling, or assistance, please feel free to reach us through Email: <a href="mailto:Ananda.Cahyo@id.nestle.com">Ananda.Cahyo@id.nestle.com</a></p>""", unsafe_allow_html=True)
-
