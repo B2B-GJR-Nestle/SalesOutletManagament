@@ -15,10 +15,10 @@ st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon=img)
 limit = 25
 
 # Function to calculate distance using geodesic distance (haversine formula)
-def calculate_distances(origin, destination):
+def calculate_distance(origin, destination):
     return geodesic(origin, destination).kilometers
 
-def calculate_distance(origin, destination):
+def calculate_distances(origin, destination):
     base_url = "http://router.project-osrm.org/route/v1/driving/"
     params = f"{origin[1]},{origin[0]};{destination[1]},{destination[0]}"
     response = requests.get(base_url + params)
@@ -67,7 +67,7 @@ def generate_scheduling(df):
 
             # Calculate distances between office and outlets concurrently
             with Pool() as pool:
-                partial_func = partial(calculate_outlet_distances, office_location, outlets_today, group)
+                partial_func = partial(calculate_distance, office_location, outlets_today, group)
                 results = pool.map(partial_func, [outlets_today]*len(outlets_today))
 
             # Merge distances from all processes
