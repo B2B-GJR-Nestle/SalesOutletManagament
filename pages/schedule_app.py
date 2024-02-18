@@ -5,28 +5,40 @@ from geopy.distance import geodesic
 import requests
 from polyline import decode
 from PIL import Image
+import threading
 
 img = Image.open('Nestle_Logo.png')
 st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon=img)
 
-#Limit visit per day
+# Limit visit per day
 limit = 25
 
 # Function to calculate distance using geodesic distance (haversine formula)
-def calculate_distances(origin, destination):
+def calculate_distance(origin, destination):
     return geodesic(origin, destination).kilometers
 
-def calculate_distance(origin, destination):
-    base_url = "http://router.project-osrm.org/route/v1/driving/"
-    params = f"{origin[1]},{origin[0]};{destination[1]},{destination[0]}"
-    response = requests.get(base_url + params)
-    if response.status_code == 200:
-        route_data = response.json()
-        if 'routes' in route_data and len(route_data['routes']) > 0:
-            return route_data['routes'][0]['distance'] / 1000  # Convert meters to kilometers
-    return None
+# Function to make API requests concurrently
+def make_api_requests(base_url, origins, destinations):
+    responses = []
 
-# Function to get route polyline from OSRM API
+    # Function to make a single API request
+    def make_request(origin, destination):
+        response = requests.get(base_url + f"{origin[1]},{origin[0]};{destination[1]},{destination[0]}")
+        responses.append(response.json())
+
+    # Create threads for each API request
+    threads = []
+    for origin, destination in zip(origins, destinations):
+        thread = threading.Thread(target=make_request, args=(origin, destination))
+        threads.append(thread)
+        thread.start()
+
+    # Wait for all threads to finish
+    for thread in threads:
+        thread.join()
+
+    return responses
+
 def get_route_polyline(origin, destination):
     base_url = "http://router.project-osrm.org/route/v1/driving/"
     params = f"{origin[1]},{origin[0]};{destination[1]},{destination[0]}"
@@ -78,7 +90,9 @@ def generate_scheduling(df):
                 outlet_distances[outlet] = distance
 
             nearest_outlet = min(outlet_distances, key=outlet_distances.get)
-            visit_orders[salesman][current_day][1] = {'Outlet': nearest_outlet, 'Distance': outlet_distances[nearest_outlet], 'Coordinates': (group[group['Outlet'] == nearest_outlet]['Latitude'].iloc[0], group[group['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
+            visit_orders[salesman][current_day][1] = {'Outlet': nearest_outlet, 'Distance': outlet_distances[nearest_outlet],
+                                                       'Coordinates': (group[group['Outlet'] == nearest_outlet]['Latitude'].iloc[0],
+                                                                       group[group['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
 
             # Remove the nearest outlet from the list of outlets
             outlets_today.remove(nearest_outlet)
@@ -110,7 +124,9 @@ def generate_scheduling(df):
                         nearest_distance = distance
 
                 # Assign the nearest outlet to the current day and visit order
-                visit_orders[salesman][current_day][visit_order + 1] = {'Outlet': nearest_outlet, 'Distance': nearest_distance, 'Coordinates': (group[group['Outlet'] == nearest_outlet]['Latitude'].iloc[0], group[group['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
+                visit_orders[salesman][current_day][visit_order + 1] = {'Outlet': nearest_outlet, 'Distance': nearest_distance,
+                                                                       'Coordinates': (group[group['Outlet'] == nearest_outlet]['Latitude'].iloc[0],
+                                                                                       group[group['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
 
                 # Remove the nearest outlet from the list of outlets
                 outlets_today.remove(nearest_outlet)
@@ -120,7 +136,6 @@ def generate_scheduling(df):
 
             # Move to the next day
             day_counter += 1
-
 
     # Convert visit orders dictionary into a DataFrame
     scheduling_data = []
@@ -141,6 +156,99 @@ def filter_schedule(scheduling_df, salesman):
     return scheduling_df[scheduling_df['Salesman'] == salesman]
 
 # Function to generate Folium map
+# Function to create a text-based icon for the visit order number
+def create_visit_order_icon(visit_order):
+    return folium.DivIcon(html=f'<div style="font-size: 12pt; color: white; background-color: #645440; border-radius: 50%; '
+                                f'width: 20px; height: 20px; line-height: 20px; text-align: center;">{visit_order}</div>')
+
+# Function to generate Folium map
+def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude, map_width=800, map_height=600):
+    m = folium.Map(location=[office_latitude, office_longitude], zoom_start=10)
+
+    # Add marker for the office with emoji
+    folium.Marker(
+        location=[office_latitude, office_longitude],  # Corrected bracket placement
+        popup="PT. RMS BEKASI🏢",
+        icon=folium.Icon(color='green', icon='briefcase', prefix='fa')
+    ).add_to(m)
+
+    # Define colors for different days
+    day_colors = {'Monday': 'blue', 'Tuesday': 'green', 'Wednesday': 'red', 'Thursday': 'orange', 'Friday': 'purple'}
+
+    # Initialize variables to track previous outlet's day and visit order
+    prev_outlet_day = None
+    prev_outlet_visit_order = None
+    prev_outlet_location = None
+
+    # Add markers and connect with polyline
+    if not filtered_schedule.empty:
+        for _, row in filtered_schedule.iterrows():
+            outlet_name = row['Outlet']
+            outlet_lat = row['Latitude']
+            outlet_lon = row['Longitude']
+            day = row['Day']
+            visit_order = row['Visit Order']
+
+            # Assign color for marker and polyline based on day
+            marker_color = day_colors.get(day, 'black')
+
+            # Create icon with visit order number
+            icon = create_visit_order_icon(visit_order)
+
+            # Add marker for outlet
+            popup_message = f"{outlet_name} \n Day: {day}"
+            folium.Marker(location=[outlet_lat, outlet_lon], popup=popup_message, icon=icon).add_to(m)
+
+            # Connect to previous outlet if in the same day and consecutive visit order
+            if prev_outlet_day == day and prev_outlet_visit_order == visit_order - 1:
+                # Get coordinates for the previous outlet
+                prev_outlet_lat = prev_outlet_location[0]
+                prev_outlet_lon = prev_outlet_location[1]
+
+                # Get route polyline from the previous outlet to the current outlet
+                locations = get_route_polyline((prev_outlet_lat, prev_outlet_lon), (outlet_lat, outlet_lon))
+
+                # If route is available, add polyline to the map
+                if locations:
+                    polyline_color = day_colors.get(day, 'black')
+                    folium.PolyLine(locations=locations, color=polyline_color).add_to(m)
+
+            # Connect outlet with Visit Order 1 to office
+            if visit_order == 1:
+                polyline_color = marker_color
+                # Get route polyline from office to outlet
+                locations = get_route_polyline((office_latitude, office_longitude), (outlet_lat, outlet_lon))
+                if locations:
+                    folium.PolyLine(locations=locations, color=polyline_color).add_to(m)
+
+            # Update variables for next iteration
+            prev_outlet_day = day
+            prev_outlet_visit_order = visit_order
+            prev_outlet_location = (outlet_lat, outlet_lon)
+
+    else:  # If no outlets are visited
+        # Connect each standalone outlet to the office
+        for _, row in df.iterrows():
+            outlet_name = row['Outlet']
+            outlet_lat = row['Latitude']
+            outlet_lon = row['Longitude']
+            popup_message = f"{outlet_name} - Standalone Outlet"
+            folium.Marker(location=[outlet_lat, outlet_lon], popup=popup_message, icon=folium.Icon(color='gray')).add_to(m)
+            folium.PolyLine(locations=[(office_latitude, office_longitude), (outlet_lat, outlet_lon)], color='gray').add_to(m)
+
+    # Create HTML string for the map
+    m_html = m._repr_html_()
+
+    # Adjust map size using custom CSS
+    m_html = f'<div style="width: {map_width}px; height: {map_height}px">{m_html}</div>'
+
+    return m_html
+
+
+# Function to filter scheduling DataFrame by salesman
+def filter_schedule(scheduling_df, salesman):
+    return scheduling_df[scheduling_df['Salesman'] == salesman]
+
 # Function to create a text-based icon for the visit order number
 def create_visit_order_icon(visit_order):
     return folium.DivIcon(html=f'<div style="font-size: 12pt; color: white; background-color: #645440; border-radius: 50%; '
@@ -189,10 +297,10 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
                 # Get coordinates for the previous outlet
                 prev_outlet_lat = prev_outlet_location[0]
                 prev_outlet_lon = prev_outlet_location[1]
-                
+
                 # Get route polyline from the previous outlet to the current outlet
                 locations = get_route_polyline((prev_outlet_lat, prev_outlet_lon), (outlet_lat, outlet_lon))
-                
+
                 # If route is available, add polyline to the map
                 if locations:
                     polyline_color = day_colors.get(day, 'black')
@@ -265,7 +373,7 @@ if uploaded_file is not None:
 
         # Display Folium map if schedule is not empty
         if not filtered_schedule.empty:
-            #st.write("📍 Map showing connections for", selected_salesman, "on", selected_day, "that need to visit",filtered_schedule['Distance'].count() ,"outlet(s) around", filtered_schedule['Distance'].sum(),"km")
+            # st.write("📍 Map showing connections for", selected_salesman, "on", selected_day, "that need to visit",filtered_schedule['Distance'].count() ,"outlet(s) around", filtered_schedule['Distance'].sum(),"km")
             st.markdown(f'<span style="font-size:16px;">📍 Map showing connections for {selected_salesman} on {selected_day} that need to visit {filtered_schedule["Distance"].count()} outlet(s) around <b>{round(filtered_schedule["Distance"].sum(),3)} km<b></span>', unsafe_allow_html=True)
             office_latitude = -6.282723
             office_longitude = 106.989738
