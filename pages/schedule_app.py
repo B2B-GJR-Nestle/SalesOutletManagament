@@ -14,10 +14,10 @@ st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon=img)
 limit = 25
 
 # Function to calculate distance using geodesic distance (haversine formula)
-def calculate_distances(origin, destination):
+def calculate_distance(origin, destination):
     return geodesic(origin, destination).kilometers
 
-def calculate_distance(origin, destination):
+def calculate_distances(origin, destination):
     base_url = "http://router.project-osrm.org/route/v1/driving/"
     params = f"{origin[1]},{origin[0]};{destination[1]},{destination[0]}"
     response = requests.get(base_url + params)
