@@ -61,12 +61,13 @@ def get_route_polyline(origin, destination):
     return []
 
 # Function to generate scheduling with balanced visit orders across days
-def generate_scheduling(df):
+def generate_scheduling(df,office_coord):
     # Sort dataframe by 'Salesman' and 'Outlet' columns
     df = df.sort_values(by=['Salesman', 'Outlet'])
 
     # Get unique office location
-    office_location = (df.iloc[0]['Latitude'], df.iloc[0]['Longitude'])
+    #office_location = (df.iloc[0]['Latitude'], df.iloc[0]['Longitude'])
+    office_location = office_coord
 
     # Create a dictionary to store visit orders and distances
     visit_orders = {}
@@ -365,7 +366,10 @@ if uploaded_file is not None:
         st.sidebar.write(df.head())
 
         # Generate scheduling
-        scheduling_df = generate_scheduling(df)
+        office_latitude = -6.282723
+        office_longitude = 106.989738
+        office_coord = (office_latitude,office_longitude)
+        scheduling_df = generate_scheduling(df,office_coord)
 
         # Filter by salesman
         salesmen = scheduling_df['Salesman'].unique()
