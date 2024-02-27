@@ -18,17 +18,7 @@ def main():
     
     # Load data
     df = load_data()
-
     
-    # Display the dropdown widget
-    options = ['Salesman Base Map', 'Density Base Map']
-    selected_option = st.selectbox('Select an option:', options)
-    if selected_option == 'Salesman Base Map':
-        cluster_sales = len(unique_salesmen)
-    else:
-        cluster_sales = 3*len(unique_salesmen)
-        cluster_sales = 17 #Number of Admn Reg. Covered by RMS
-
     # Initialize session state
     if 'new_outlets' not in st.session_state:
         st.session_state.new_outlets = []
@@ -45,6 +35,10 @@ def main():
         # Concatenate the new data with existing dataframe
         df = pd.concat([df, new_data], ignore_index=True)
 
+    # Display the dropdown widget
+    options = ['Salesman Base Map', 'Density Base Map']
+    selected_option = st.selectbox('Select an option:', options)
+
     # Step 2: Cluster the initial outlets and calculate centroids
     if st.session_state.new_outlets:
         new_outlets_df = pd.DataFrame(st.session_state.new_outlets)
@@ -57,6 +51,11 @@ def main():
         colors = ['blue', 'green', 'red', 'purple', 'orange', 'darkred', 'lightred', 'beige', 'darkblue', 'darkgreen']
         salesman_mapping = {salesman: colors[i % len(colors)] for i, salesman in enumerate(unique_salesmen)}
 
+        if selected_option == 'Salesman Base Map':
+            cluster_sales = len(unique_salesmen)
+        else:
+            cluster_sales = 3*len(unique_salesmen)
+            cluster_sales = 17 #Number of Admn Reg. Covered by RMS
         kmeans_model = KMeans(n_clusters=cluster_sales, random_state=42).fit(df[['Latitude', 'Longitude']])
         initial_kmeans_labels = kmeans_model.predict(df[['Latitude', 'Longitude']])
         initial_centroids = kmeans_model.cluster_centers_
