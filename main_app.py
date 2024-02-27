@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 import folium
 from folium.plugins import MarkerCluster
-from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
 from PIL import Image
 
 img = Image.open('Nestle_Logo.png')
@@ -47,15 +47,24 @@ def main():
         colors = ['blue', 'green', 'red', 'purple', 'orange', 'darkred', 'lightred', 'beige', 'darkblue', 'darkgreen']
         salesman_mapping = {salesman: colors[i % len(colors)] for i, salesman in enumerate(unique_salesmen)}
 
-        if len(df['Salesman']) < 5*len(unique_salesmen):
-            cluster_sales = len(unique_salesmen)
-        else:
-            cluster_sales = 3*len(unique_salesmen)
-        kmeans_model = KMeans(n_clusters=cluster_sales, random_state=42).fit(df[['Latitude', 'Longitude']])
-        initial_kmeans_labels = kmeans_model.predict(df[['Latitude', 'Longitude']])
-        initial_centroids = kmeans_model.cluster_centers_
+        dbscan_model = DBSCAN(eps=0.1, min_samples=5).fit(df[['Latitude', 'Longitude']])
+        initial_dbscan_labels = dbscan_model.labels_
+        unique_labels = set(initial_dbscan_labels)
 
-        initial_centroid_salesman = {tuple(centroid): salesman for centroid, salesman in zip(initial_centroids, unique_salesmen)}
+        # Initialize centroids dictionary
+        initial_centroids = {}
+
+        # Initialize center salesman dictionary
+        center_salesman = {}
+
+        # Calculate centroids and center salesman for each cluster
+        for label in unique_labels:
+            if label == -1:  # Noise points
+                continue
+            cluster_points = df[initial_dbscan_labels == label]
+            cluster_center = cluster_points[['Latitude', 'Longitude']].mean()
+            initial_centroids[label] = cluster_center.values
+            center_salesman[label] = cluster_points['Salesman'].value_counts().idxmax()
 
         # GeoJSON file path for KECAMATAN borders
         bekasi_geojson_path = "kabkot_bekasi.geojson"
@@ -96,25 +105,13 @@ def main():
         salesman_color_dict = {salesman: color for salesman, color in salesman_mapping.items()}
         default_color = 'gray'  # Assign a default color for outlets without a specified salesman
 
-        # Create a dictionary to store the most appearing salesman for each center coordinate
-        center_salesman = {}
-
-        # Iterate through the outlets and calculate the most appearing salesman for each center coordinate
-        for i, row in df.iterrows():
-            center_coords = tuple(initial_centroids[initial_kmeans_labels[i]])  # Convert NumPy array to tuple
-            salesman_name = row['Salesman']
-            if center_coords not in center_salesman:
-                center_salesman[center_coords] = {}
-            center_salesman[center_coords][salesman_name] = center_salesman[center_coords].get(salesman_name, 0) + 1
-
-        # Assign the most appearing salesman for each center coordinate
-        for centroid, salesmen_count in center_salesman.items():
-            most_appearing_salesman = max(salesmen_count, key=salesmen_count.get)
-            initial_centroid_salesman[centroid] = most_appearing_salesman
-
         # Plot the markers, polylines, and assign salesman for center coordinates
         for i, row in df.iterrows():
             salesman_name = row['Salesman']
+            cluster_label = initial_dbscan_labels[i]
+            if cluster_label == -1:  # Noise points
+                continue
+            cluster_center = initial_centroids[cluster_label]
             salesman_color = salesman_color_dict.get(salesman_name, default_color)  # Use default color for missing salesman
             popup_text = f"{row['Outlet']} - {salesman_name}"
             folium.Marker(
@@ -122,20 +119,16 @@ def main():
                 popup=popup_text,
                 icon=folium.Icon(color=salesman_color)
             ).add_to(marker_cluster)
+            folium.PolyLine([[row['Latitude'], row['Longitude']], cluster_center], color=salesman_color, weight=3, opacity=0.5).add_to(m)
 
-        for centroid, salesman in initial_centroid_salesman.items():
-            color = salesman_mapping[salesman]
+        for label, cluster_center in initial_centroids.items():
+            salesman_name = center_salesman[label]
+            color = salesman_mapping[salesman_name]
             folium.Marker(
-                location=centroid,
-                popup=f"Salesman - {salesman} - {unique_salesmen.tolist().index(salesman)}",
+                location=cluster_center,
+                popup=f"Salesman - {salesman_name}",
                 icon=folium.Icon(color=color)
             ).add_to(m)
-
-        for i, row in df.iterrows():
-            outlet_coords = [row['Latitude'], row['Longitude']]
-            salesman_center_coords = initial_centroids[initial_kmeans_labels[i]]
-            salesman_color = salesman_color_dict.get(row['Salesman'], default_color)  # Use default color for missing salesman
-            folium.PolyLine([outlet_coords, salesman_center_coords], color=salesman_color, weight=3, opacity=0.5).add_to(m)
 
         # Add layer control for KECAMATAN layers
         folium.LayerControl().add_to(m)
@@ -154,14 +147,16 @@ def main():
             new_outlet = {'Outlet': new_outlet_name, 'Longitude': new_outlet_longitude, 'Latitude': new_outlet_latitude}
 
             # Determine the suggested salesman for the new outlet based on proximity
-            nearest_salesman_idx = kmeans_model.predict([[new_outlet_latitude, new_outlet_longitude]])[0]
-            suggested_salesman = initial_centroid_salesman[tuple(kmeans_model.cluster_centers_[nearest_salesman_idx])]
-            new_outlet['Salesman'] = suggested_salesman
+            suggested_salesman_label = dbscan_model.predict([[new_outlet_latitude, new_outlet_longitude]])[0]
+            if suggested_salesman_label == -1:  # Noise point
+                st.warning("New outlet is considered noise and cannot be assigned to any cluster.")
+            else:
+                suggested_salesman = center_salesman[suggested_salesman_label]
+                new_outlet['Salesman'] = suggested_salesman
+                st.session_state.new_outlets.append(new_outlet)
 
-            st.session_state.new_outlets.append(new_outlet)
-
-            # Refresh the page to update the map with the new outlet
-            st.experimental_rerun()
+                # Refresh the page to update the map with the new outlet
+                st.experimental_rerun()
 
     else:
         st.warning("Please upload a sales database file.")
