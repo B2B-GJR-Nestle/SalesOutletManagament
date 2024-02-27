@@ -47,7 +47,11 @@ def main():
         colors = ['blue', 'green', 'red', 'purple', 'orange', 'darkred', 'lightred', 'beige', 'darkblue', 'darkgreen']
         salesman_mapping = {salesman: colors[i % len(colors)] for i, salesman in enumerate(unique_salesmen)}
 
-        kmeans_model = KMeans(n_clusters=3*len(unique_salesmen), random_state=42).fit(df[['Latitude', 'Longitude']])
+        if len(df['Salesman']) < 5*len(unique_salesmen):
+            cluster_sales = len(unique_salesmen)
+        else:
+            cluster_sales = 3*len(unique_salesmen)
+        kmeans_model = KMeans(n_clusters=cluster_sales, random_state=42).fit(df[['Latitude', 'Longitude']])
         initial_kmeans_labels = kmeans_model.predict(df[['Latitude', 'Longitude']])
         initial_centroids = kmeans_model.cluster_centers_
 
