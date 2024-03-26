@@ -38,8 +38,9 @@ def main():
     # Display the dropdown widget
     options = ['Density Base Map','Salesman Base Map']
     selected_option = st.selectbox('Select an option:', options)
-    
-    number = st.number_input("Enter number of cluster:", step=1)
+
+    default_num = 7
+    number = st.number_input("Enter number of cluster:",value=default_num, step=1)
 
     # Step 2: Cluster the initial outlets and calculate centroids
     if st.session_state.new_outlets:
