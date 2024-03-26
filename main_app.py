@@ -37,7 +37,8 @@ def main():
 
     # Display the dropdown widget
     options = ['Density Base Map','Salesman Base Map']
-    selected_option = st.selectbox('Select an option:', options)
+    #selected_option = st.selectbox('Select an option:', options)
+    selected_option = 'Density Base Map'
 
     default_num = 7
     number = st.number_input("Enter number of cluster:",value=default_num, step=1)
