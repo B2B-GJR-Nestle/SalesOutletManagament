@@ -36,8 +36,10 @@ def main():
         df = pd.concat([df, new_data], ignore_index=True)
 
     # Display the dropdown widget
-    options = ['Salesman Base Map', 'Density Base Map']
+    options = ['Density Base Map','Salesman Base Map']
     selected_option = st.selectbox('Select an option:', options)
+    
+    number = st.number_input("Enter number of cluster:", step=1)
 
     # Step 2: Cluster the initial outlets and calculate centroids
     if st.session_state.new_outlets:
@@ -54,8 +56,9 @@ def main():
         if selected_option == 'Salesman Base Map':
             cluster_sales = len(unique_salesmen)
         else:
-            cluster_sales = 3*len(unique_salesmen)
-            cluster_sales = 17 #Number of Admn Reg. Covered by RMS
+            #cluster_sales = 3*len(unique_salesmen)
+            #cluster_sales = 17 #Number of Admn Reg. Covered by RMS
+            cluster_sales = number
         kmeans_model = KMeans(n_clusters=cluster_sales, random_state=42).fit(df[['Latitude', 'Longitude']])
         initial_kmeans_labels = kmeans_model.predict(df[['Latitude', 'Longitude']])
         initial_centroids = kmeans_model.cluster_centers_
