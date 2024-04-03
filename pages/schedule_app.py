@@ -355,7 +355,6 @@ if use_sheet_id:
     # Define default sheet_id
     sheet_id = '1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY'
     df = pd.read_csv(f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
-    limit = df.shape[1]
     st.write("This App extracts data from Google Spreadsheet, visit <a href='https://docs.google.com/spreadsheets/d/1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY/edit?usp=sharing' target='_blank'>📋Geotag Master Database</a> to edit the entry", unsafe_allow_html=True)
 else:
     # Upload file
@@ -366,7 +365,7 @@ else:
         else:
             df = pd.read_excel(uploaded_file)
         limit = df.shape[1]
-
+limit = df.shape[1]
 # Limit visit per day
 #default_num = 25
 #limit = st.number_input("Enter number of Store to Visit in A Day:", value=default_num, step=1)
