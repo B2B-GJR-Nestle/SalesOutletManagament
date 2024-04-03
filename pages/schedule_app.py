@@ -117,6 +117,7 @@ def filter_schedule(scheduling_df, selected_salesman, selected_day, selected_vis
     return filtered_schedule
 
 # Function to generate Folium map
+# Function to generate Folium map
 def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude, map_width=800, map_height=600):
     m = folium.Map(location=[office_latitude, office_longitude], zoom_start=10)
 
@@ -151,14 +152,13 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
             popup_message = f"{outlet_name} \n Day: {day}"
             folium.Marker(location=[outlet_lat, outlet_lon], popup=popup_message, icon=folium.Icon(color=marker_color)).add_to(m)
 
+            # Convert coordinates to string format
+            coordinates_str = f"{outlet_lat},{outlet_lon}"
+            
             # Connect to previous outlet if in the same day and consecutive visit order
             if prev_outlet_day == day and prev_outlet_visit_order == visit_order - 1:
-                # Get coordinates for the previous outlet
-                prev_outlet_lat = prev_outlet_location[0]
-                prev_outlet_lon = prev_outlet_location[1]
-
                 # Get route polyline from the previous outlet to the current outlet
-                locations = decode(row['Coordinates'])
+                locations = decode(prev_outlet_location, coordinates_str)
 
                 # If route is available, add polyline to the map
                 if locations:
@@ -169,14 +169,14 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
             if visit_order == 1:
                 polyline_color = marker_color
                 # Get route polyline from office to outlet
-                locations = decode(row['Coordinates'])
+                locations = decode((office_latitude, office_longitude), coordinates_str)
                 if locations:
                     folium.PolyLine(locations=locations, color=polyline_color).add_to(m)
 
             # Update variables for next iteration
             prev_outlet_day = day
             prev_outlet_visit_order = visit_order
-            prev_outlet_location = (outlet_lat, outlet_lon)
+            prev_outlet_location = coordinates_str
 
     else:  # If no outlets are visited
         # Connect each standalone outlet to the office
@@ -195,6 +195,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
     m_html = f'<div style="width: {map_width}px; height: {map_height}px">{m_html}</div>'
 
     return m_html
+
 
 
 # Streamlit UI
