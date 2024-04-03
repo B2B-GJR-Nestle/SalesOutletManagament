@@ -370,7 +370,7 @@ else:
 # Limit visit per day
 #default_num = 25
 #limit = st.number_input("Enter number of Store to Visit in A Day:", value=default_num, step=1)
-
+limit = df.shape[1]
 
 if 'df' in locals():
     try:
