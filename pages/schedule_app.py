@@ -59,8 +59,8 @@ def get_route_polyline(origin, destination):
 
 # Function to generate scheduling with balanced visit orders across days
 def generate_scheduling(df,office_coord):
-    # Sort dataframe by 'Salesman' and 'Outlet' columns
-    df = df.sort_values(by=['Salesman', 'Outlet'])
+    # Sort dataframe by 'NAMA SALESMAN' and 'NAMA TOKO' columns
+    df = df.sort_values(by=['NAMA SALESMAN', 'NAMA TOKO'])
 
     # Get unique office location
     #office_location = (df.iloc[0]['Latitude'], df.iloc[0]['Longitude'])
@@ -70,7 +70,7 @@ def generate_scheduling(df,office_coord):
     visit_orders = {}
 
     # Generate visit orders for each salesman
-    for salesman, group in df.groupby('Salesman'):
+    for salesman, group in df.groupby('NAMA SALESMAN'):
         visit_orders[salesman] = {}
 
         # Initialize visit orders for each day
@@ -78,7 +78,7 @@ def generate_scheduling(df,office_coord):
             visit_orders[salesman][day] = {}
 
         # Split outlets into days and find nearest outlet for each day
-        outlets = group['Outlet'].tolist()  # Get outlets for the current salesman
+        outlets = group['NAMA TOKO'].tolist()  # Get outlets for the current salesman
         num_outlets = len(outlets)
         day_counter = 0  # Initialize day counter
         visit_order = 1  # Initialize visit order
@@ -93,14 +93,14 @@ def generate_scheduling(df,office_coord):
             # Find nearest outlet from office and make it visit order 1
             outlet_distances = {}
             for outlet in outlets_today:
-                outlet_location = (group[group['Outlet'] == outlet]['Latitude'].iloc[0], group[group['Outlet'] == outlet]['Longitude'].iloc[0])
+                outlet_location = (group[group['NAMA TOKO'] == outlet]['Latitude'].iloc[0], group[group['NAMA TOKO'] == outlet]['Longitude'].iloc[0])
                 distance = calculate_distance(office_location, outlet_location)
                 outlet_distances[outlet] = distance
 
             nearest_outlet = min(outlet_distances, key=outlet_distances.get)
-            visit_orders[salesman][current_day][1] = {'Outlet': nearest_outlet, 'Distance': outlet_distances[nearest_outlet],
-                                                       'Coordinates': (group[group['Outlet'] == nearest_outlet]['Latitude'].iloc[0],
-                                                                       group[group['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
+            visit_orders[salesman][current_day][1] = {'NAMA TOKO': nearest_outlet, 'Distance': outlet_distances[nearest_outlet],
+                                                       'Coordinates': (group[group['NAMA TOKO'] == nearest_outlet]['Latitude'].iloc[0],
+                                                                       group[group['NAMA TOKO'] == nearest_outlet]['Longitude'].iloc[0])}
 
             # Remove the nearest outlet from the list of outlets
             outlets_today.remove(nearest_outlet)
@@ -123,7 +123,7 @@ def generate_scheduling(df,office_coord):
 
                 # Find the nearest outlet relative to the last assigned outlet
                 for outlet in outlets_today:
-                    outlet_location = (group[group['Outlet'] == outlet]['Latitude'].iloc[0], group[group['Outlet'] == outlet]['Longitude'].iloc[0])
+                    outlet_location = (group[group['NAMA TOKO'] == outlet]['Latitude'].iloc[0], group[group['NAMA TOKO'] == outlet]['Longitude'].iloc[0])
                     distance = calculate_distance(last_assigned_outlet, outlet_location)
 
                     # Update nearest outlet and distance if the current outlet is closer
@@ -132,9 +132,9 @@ def generate_scheduling(df,office_coord):
                         nearest_distance = distance
 
                 # Assign the nearest outlet to the current day and visit order
-                visit_orders[salesman][current_day][visit_order + 1] = {'Outlet': nearest_outlet, 'Distance': nearest_distance,
-                                                                       'Coordinates': (group[group['Outlet'] == nearest_outlet]['Latitude'].iloc[0],
-                                                                                       group[group['Outlet'] == nearest_outlet]['Longitude'].iloc[0])}
+                visit_orders[salesman][current_day][visit_order + 1] = {'NAMA TOKO': nearest_outlet, 'Distance': nearest_distance,
+                                                                       'Coordinates': (group[group['NAMA TOKO'] == nearest_outlet]['Latitude'].iloc[0],
+                                                                                       group[group['NAMA TOKO'] == nearest_outlet]['Longitude'].iloc[0])}
 
                 # Remove the nearest outlet from the list of outlets
                 outlets_today.remove(nearest_outlet)
@@ -150,18 +150,18 @@ def generate_scheduling(df,office_coord):
     for salesman, days_data in visit_orders.items():
         for day, visit_orders in days_data.items():
             for visit_order, data in visit_orders.items():
-                scheduling_data.append([salesman, day, visit_order, data['Outlet'], data['Distance'], data['Coordinates']])
+                scheduling_data.append([salesman, day, visit_order, data['NAMA TOKO'], data['Distance'], data['Coordinates']])
 
-    scheduling_df = pd.DataFrame(scheduling_data, columns=['Salesman', 'Day', 'Visit Order', 'Outlet', 'Distance', 'Coordinates'])
+    scheduling_df = pd.DataFrame(scheduling_data, columns=['NAMA SALESMAN', 'Day', 'Visit Order', 'NAMA TOKO', 'Distance', 'Coordinates'])
 
     # Merge scheduling_df with longitude and latitude columns
-    scheduling_df = pd.merge(scheduling_df, df[['Outlet', 'Latitude', 'Longitude']], on='Outlet')
+    scheduling_df = pd.merge(scheduling_df, df[['NAMA TOKO', 'Latitude', 'Longitude']], on='NAMA TOKO')
 
     return scheduling_df
 
 # Function to filter scheduling DataFrame by salesman
 def filter_schedule(scheduling_df, salesman):
-    return scheduling_df[scheduling_df['Salesman'] == salesman]
+    return scheduling_df[scheduling_df['NAMA SALESMAN'] == salesman]
 
 # Function to generate Folium map
 # Function to create a text-based icon for the visit order number
@@ -191,7 +191,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
     # Add markers and connect with polyline
     if not filtered_schedule.empty:
         for _, row in filtered_schedule.iterrows():
-            outlet_name = row['Outlet']
+            outlet_name = row['NAMA TOKO']
             outlet_lat = row['Latitude']
             outlet_lon = row['Longitude']
             day = row['Day']
@@ -237,7 +237,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
     else:  # If no outlets are visited
         # Connect each standalone outlet to the office
         for _, row in df.iterrows():
-            outlet_name = row['Outlet']
+            outlet_name = row['NAMA TOKO']
             outlet_lat = row['Latitude']
             outlet_lon = row['Longitude']
             popup_message = f"{outlet_name} - Standalone Outlet"
@@ -255,7 +255,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
 
 # Function to filter scheduling DataFrame by salesman
 def filter_schedule(scheduling_df, salesman):
-    return scheduling_df[scheduling_df['Salesman'] == salesman]
+    return scheduling_df[scheduling_df['NAMA SALESMAN'] == salesman]
 
 # Function to create a text-based icon for the visit order number
 def create_visit_order_icon(visit_order):
@@ -284,7 +284,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
     # Add markers and connect with polyline
     if not filtered_schedule.empty:
         for _, row in filtered_schedule.iterrows():
-            outlet_name = row['Outlet']
+            outlet_name = row['NAMA TOKO']
             outlet_lat = row['Latitude']
             outlet_lon = row['Longitude']
             day = row['Day']
@@ -330,7 +330,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
     else:  # If no outlets are visited
         # Connect each standalone outlet to the office
         for _, row in df.iterrows():
-            outlet_name = row['Outlet']
+            outlet_name = row['NAMA TOKO']
             outlet_lat = row['Latitude']
             outlet_lon = row['Longitude']
             popup_message = f"{outlet_name} - Standalone Outlet"
@@ -373,7 +373,7 @@ if uploaded_file is not None:
         scheduling_df = generate_scheduling(df,office_coord)
 
         # Filter by salesman
-        salesmen = scheduling_df['Salesman'].unique()
+        salesmen = scheduling_df['NAMA SALESMAN'].unique()
         selected_salesman = st.sidebar.selectbox("Select salesman:", salesmen)
         filtered_schedule = filter_schedule(scheduling_df, selected_salesman)
 
