@@ -182,8 +182,10 @@ def main():
 
     st.sidebar.image("Nestle_Signature.png")
     st.sidebar.write("""<p style='font-size: 14px;'>This Web-App is designed to facilitate HOA or Distributor in mapping salesman coverage of outlets for PT Nestlé Indonesia Customer made by <b>Nestlé Management Trainee 2023<b></p>""", unsafe_allow_html=True)
-    st.sidebar.write("""<p style='font-size: 13px;'>For any inquiries, error handling, or assistance, please feel free to reach us through Email: <a href="mailto:Ananda.Cahyo@id.nestle.com">Ananda.Cahyo@id.nestle.com</a></p>""", unsafe_allow_html=True)
-
+    st.sidebar.write("""<p style='font-size: 13px;'>For any inquiries, error handling, or assistance, please feel free to reach us through Email: <br>
+<a href="mailto:Ananda.Cahyo@id.nestle.com">Ananda.Cahyo@id.nestle.com <br>
+<a href="mailto:Kemal.Ardaffa@id.nestle.com">Kemal.Ardaffa@id.nestle.com <br>
+<a href="mailto:Farah.Risha@id.nestle.com">Farah.Risha@id.nestle.com</a></p>""", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
