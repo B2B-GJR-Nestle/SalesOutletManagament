@@ -117,6 +117,19 @@ def filter_schedule(scheduling_df, selected_salesman, selected_day, selected_vis
     return filtered_schedule
 
 # Function to generate Folium map
+# Function to get route polyline using OSRM API
+def get_route_polyline(origin, destination):
+    base_url = "http://router.project-osrm.org/route/v1/driving/"
+    params = f"{origin[1]},{origin[0]};{destination[1]},{destination[0]}"
+    response = requests.get(base_url + params)
+    if response.status_code == 200:
+        route_data = response.json()
+        if 'routes' in route_data and len(route_data['routes']) > 0:
+            polyline = route_data['routes'][0]['geometry']
+            return decode(polyline)
+    return []
+
+# Function to generate Folium map
 def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude, map_width=800, map_height=600):
     m = folium.Map(location=[office_latitude, office_longitude], zoom_start=10)
 
@@ -158,7 +171,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
                 prev_outlet_lon = prev_outlet_location[1]
 
                 # Get route polyline from the previous outlet to the current outlet
-                locations = decode(row['Coordinates'])
+                locations = get_route_polyline((prev_outlet_lat, prev_outlet_lon), (outlet_lat, outlet_lon))
 
                 # If route is available, add polyline to the map
                 if locations:
@@ -169,7 +182,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
             if visit_order == 1:
                 polyline_color = marker_color
                 # Get route polyline from office to outlet
-                locations = decode(row['Coordinates'])
+                locations = get_route_polyline((office_latitude, office_longitude), (outlet_lat, outlet_lon))
                 if locations:
                     folium.PolyLine(locations=locations, color=polyline_color).add_to(m)
 
@@ -195,6 +208,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
     m_html = f'<div style="width: {map_width}px; height: {map_height}px">{m_html}</div>'
 
     return m_html
+
 
 
 # Streamlit UI
