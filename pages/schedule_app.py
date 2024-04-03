@@ -368,8 +368,8 @@ if uploaded_file is not None:
         st.sidebar.write(df.head())
 
         # Generate scheduling
-        office_latitude = -6.282723
-        office_longitude = 106.989738
+        office_latitude = -6.558031
+        office_longitude = 106.691809
         office_coord = (office_latitude,office_longitude)
         scheduling_df = generate_scheduling(df,office_coord)
 
@@ -391,8 +391,8 @@ if uploaded_file is not None:
         if not filtered_schedule.empty:
             # st.write("📍 Map showing connections for", selected_salesman, "on", selected_day, "that need to visit",filtered_schedule['Distance'].count() ,"outlet(s) around", filtered_schedule['Distance'].sum(),"km")
             st.markdown(f'<span style="font-size:16px;">📍 Map showing connections for {selected_salesman} on {selected_day} that need to visit {filtered_schedule["Distance"].count()} outlet(s) around <b>{round(filtered_schedule["Distance"].sum(),3)} km<b></span>', unsafe_allow_html=True)
-            office_latitude = -6.282723
-            office_longitude = 106.989738
+            office_latitude = -6.558031
+            office_longitude = 106.691809
             folium_map_html = generate_folium_map(df, filtered_schedule, office_latitude, office_longitude)
             st.components.v1.html(folium_map_html, width=825, height=550)
         else:
