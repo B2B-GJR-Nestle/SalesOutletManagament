@@ -363,6 +363,7 @@ if uploaded_file is not None:
             df = pd.read_csv(uploaded_file)
         else:
             df = pd.read_excel(uploaded_file)
+        df = df.dropna(subset=['Latitude'], inplace=True)
         st.sidebar.write("Data Preview:")
         st.sidebar.write(df.head())
 
