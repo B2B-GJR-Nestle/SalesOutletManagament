@@ -58,12 +58,11 @@ def get_route_polyline(origin, destination):
     return []
 
 # Function to generate scheduling with balanced visit orders across days
-def generate_scheduling(df,office_coord):
+def generate_scheduling(df, office_coord):
     # Sort dataframe by 'NAMA SALESMAN' and 'NAMA TOKO' columns
     df = df.sort_values(by=['NAMA SALESMAN', 'NAMA TOKO'])
 
     # Get unique office location
-    #office_location = (df.iloc[0]['Latitude'], df.iloc[0]['Longitude'])
     office_location = office_coord
 
     # Create a dictionary to store visit orders and distances
@@ -74,7 +73,7 @@ def generate_scheduling(df,office_coord):
         visit_orders[salesman] = {}
 
         # Initialize visit orders for each day
-        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
+        for day in group['DAY'].unique():
             visit_orders[salesman][day] = {}
 
         # Split outlets into days and find nearest outlet for each day
@@ -84,7 +83,7 @@ def generate_scheduling(df,office_coord):
         visit_order = 1  # Initialize visit order
 
         while outlets:
-            current_day = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day_counter]
+            current_day = group['DAY'].unique()[day_counter]
 
             # Take up to limit(5) outlets for the current day
             outlets_today = outlets[:limit]
@@ -111,7 +110,7 @@ def generate_scheduling(df,office_coord):
                 if visit_order > limit:
                     visit_order = 1
                     day_counter += 1
-                    if day_counter >= limit:  # If reached the last day, stop assigning visit orders
+                    if day_counter >= len(group['DAY'].unique()):  # If reached the last day, stop assigning visit orders
                         break
 
                 # Get the location of the last assigned outlet
@@ -158,6 +157,7 @@ def generate_scheduling(df,office_coord):
     scheduling_df = pd.merge(scheduling_df, df[['NAMA TOKO', 'Latitude', 'Longitude']], on='NAMA TOKO')
 
     return scheduling_df
+
 
 # Function to filter scheduling DataFrame by salesman
 def filter_schedule(scheduling_df, salesman):
