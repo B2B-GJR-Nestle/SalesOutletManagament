@@ -357,6 +357,7 @@ if use_sheet_id:
     sheet_id = '1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY'
     df = pd.read_csv(f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
     limit = df.shape[1]
+    st.write("This App extract data from Google Spreadsheet, visit <a href='https://docs.google.com/spreadsheets/d/1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY/edit?usp=sharing' target='_blank'>Geotag Master Database</a> to edit the entry")
 else:
     # Upload file
     uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"])
