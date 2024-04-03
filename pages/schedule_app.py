@@ -197,7 +197,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
             visit_order = row['Visit Order']
 
             # Assign color for marker and polyline based on day
-            marker_color = day_colors.get(day, 'black')
+            marker_color = day_colors.get(day, 'navy')
 
             # Create icon with visit order number
             icon = create_visit_order_icon(visit_order)
@@ -217,7 +217,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
 
                 # If route is available, add polyline to the map
                 if locations:
-                    polyline_color = day_colors.get(day, 'black')
+                    polyline_color = day_colors.get(day, 'navy')
                     folium.PolyLine(locations=locations, color=polyline_color).add_to(m)
 
             # Connect outlet with Visit Order 1 to office
@@ -290,7 +290,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
             visit_order = row['Visit Order']
 
             # Assign color for marker and polyline based on day
-            marker_color = day_colors.get(day, 'black')
+            marker_color = day_colors.get(day, 'navy')
 
             # Create icon with visit order number
             icon = create_visit_order_icon(visit_order)
@@ -310,7 +310,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
 
                 # If route is available, add polyline to the map
                 if locations:
-                    polyline_color = day_colors.get(day, 'black')
+                    polyline_color = day_colors.get(day, 'navy')
                     folium.PolyLine(locations=locations, color=polyline_color).add_to(m)
 
             # Connect outlet with Visit Order 1 to office
