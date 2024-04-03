@@ -92,7 +92,7 @@ def generate_scheduling(df, office_coord):
             # Find nearest outlet from office and make it visit order 1
             outlet_distances = {}
             for outlet in outlets_today:
-                outlet_location = (group[group['NAMA TOKO'] == outlet]['Latitude'].iloc[0], group[group['NAMA TOKO'] == outlet]['Longitude'].iloc[0])
+                outlet_location = (round(group[group['NAMA TOKO'] == outlet]['Latitude'].iloc[0], 6), round(group[group['NAMA TOKO'] == outlet]['Longitude'].iloc[0], 6))
                 distance = calculate_distance(office_location, outlet_location)
                 outlet_distances[outlet] = distance
 
