@@ -356,6 +356,7 @@ if use_sheet_id:
     # Define default sheet_id
     sheet_id = '1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY'
     df = pd.read_csv(f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
+    limit = df.shape[1]
 else:
     # Upload file
     uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"])
@@ -364,11 +365,12 @@ else:
             df = pd.read_csv(uploaded_file)
         else:
             df = pd.read_excel(uploaded_file)
+    limit = df.shape[1]
 
 # Limit visit per day
 #default_num = 25
 #limit = st.number_input("Enter number of Store to Visit in A Day:", value=default_num, step=1)
-limit = df.shape[1]
+
 
 if 'df' in locals():
     try:
@@ -383,14 +385,14 @@ if 'df' in locals():
         scheduling_df = generate_scheduling(df, office_coord)
 
         # Filter by salesman
-        salesmen = scheduling_df['NAMA SALESMAN'].unique()
-        selected_salesman = st.sidebar.selectbox("Select salesman:", salesmen)
-        filtered_schedule = filter_schedule(scheduling_df, selected_salesman)
+        #salesmen = scheduling_df['NAMA SALESMAN'].unique()
+        #selected_salesman = st.sidebar.selectbox("Select salesman:", salesmen)
+        #filtered_schedule = filter_schedule(scheduling_df, selected_salesman)
 
         # Filter by day
-        days = scheduling_df['Day'].unique()
-        selected_day = st.sidebar.selectbox("Select day:", days)
-        filtered_schedule = filtered_schedule[filtered_schedule['Day'] == selected_day]
+        #days = scheduling_df['Day'].unique()
+        #selected_day = st.sidebar.selectbox("Select day:", days)
+        #filtered_schedule = filtered_schedule[filtered_schedule['Day'] == selected_day]
 
         # Display filtered scheduling
         st.write("Generated Scheduling for", selected_salesman, "on", selected_day)
