@@ -350,7 +350,11 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
 st.title('📅Salesman Scheduling Dashboard')
 
 # Upload file
-uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"])
+#uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"])
+uploaded_file = 1
+
+sheet_id = '1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY'
+df = pd.read_csv(f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
 
 # Limit visit per day
 default_num = 25
@@ -359,10 +363,10 @@ limit = st.number_input("Enter number of Store to Visit in A Day:",value=default
 if uploaded_file is not None:
     # Read uploaded file
     try:
-        if uploaded_file.name.endswith('.csv'):
+        """if uploaded_file.name.endswith('.csv'):
             df = pd.read_csv(uploaded_file)
         else:
-            df = pd.read_excel(uploaded_file)
+            df = pd.read_excel(uploaded_file)"""
         df.dropna(subset=['Latitude'], inplace=True)
         st.sidebar.write("Data Preview:")
         st.sidebar.write(df.head())
