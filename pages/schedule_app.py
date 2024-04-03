@@ -122,7 +122,7 @@ def generate_scheduling(df, office_coord):
 
 # Function to filter scheduling DataFrame by salesman
 def filter_schedule(scheduling_df, salesman):
-    return scheduling_df[scheduling_df['NAMA SALESMAN'] == salesman]
+    return scheduling_df[scheduling_df['NAMA SALESMAN'] == salesman].copy()
 
 # Function to generate Folium map
 # Function to create a text-based icon for the visit order number
