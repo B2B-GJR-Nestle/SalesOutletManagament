@@ -83,16 +83,24 @@ def generate_scheduling(df, office_coord):
             day_group = group[group['DAY'] == day]
             outlets = day_group['NAMA TOKO'].tolist()  # Get outlets for the current day
 
+            # Initialize variables to keep track of previous outlet
+            prev_outlet = None
+
             # Continue generating visit orders until all outlets for the day are visited
             visit_order = 1
             while outlets:
-                # Find nearest outlet from office and make it visit order 1
+                # Find nearest outlet from the previous outlet and make it visit order 1
                 outlet_distances = {}
                 for outlet in outlets:
                     outlet_location = (day_group[day_group['NAMA TOKO'] == outlet]['Latitude'].iloc[0], 
                                         day_group[day_group['NAMA TOKO'] == outlet]['Longitude'].iloc[0])
-                    distance = calculate_distance(office_location, outlet_location)
-                    outlet_distances[outlet] = distance
+                    if prev_outlet is not None:
+                        distance = calculate_distance(prev_outlet, outlet_location)
+                        outlet_distances[outlet] = distance
+                    else:
+                        # If it's the first outlet, calculate distance from office
+                        distance = calculate_distance(office_location, outlet_location)
+                        outlet_distances[outlet] = distance
 
                 nearest_outlet = min(outlet_distances, key=outlet_distances.get)
                 visit_orders[salesman][day][visit_order] = {'NAMA TOKO': nearest_outlet, 
@@ -101,6 +109,9 @@ def generate_scheduling(df, office_coord):
 
                 # Remove the nearest outlet from the list of outlets
                 outlets.remove(nearest_outlet)
+
+                # Update previous outlet
+                prev_outlet = outlet_location
 
                 # Increment visit order
                 visit_order += 1
@@ -115,9 +126,10 @@ def generate_scheduling(df, office_coord):
     scheduling_df = pd.DataFrame(scheduling_data, columns=['NAMA SALESMAN', 'Day', 'Visit Order', 'NAMA TOKO', 'Distance', 'Coordinates'])
 
     # Merge scheduling_df with longitude and latitude columns
-    scheduling_df = pd.merge(scheduling_df, df[['NAMA TOKO', 'Latitude', 'Longitude', 'KUNJUNGAN']], on='NAMA TOKO')
+    scheduling_df = pd.merge(scheduling_df, df[['NAMA TOKO', 'Latitude', 'Longitude']], on='NAMA TOKO')
 
     return scheduling_df
+
 
 
 # Function to filter scheduling DataFrame by salesman
