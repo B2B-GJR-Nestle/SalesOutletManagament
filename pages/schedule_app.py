@@ -367,8 +367,8 @@ if uploaded_file is not None:
         st.sidebar.write(df.head())
 
         # Generate scheduling
-        office_latitude = -6.282723
-        office_longitude = 106.989738
+        office_latitude = -6.558031
+        office_longitude = 106.691809
         office_coord = (office_latitude,office_longitude)
         scheduling_df = generate_scheduling(df,office_coord)
 
