@@ -384,6 +384,10 @@ if 'df' in locals():
         office_coord = (office_latitude, office_longitude)
         scheduling_df = generate_scheduling(df, office_coord)
 
+        # Round Latitude and Longitude columns to 6 decimal places
+        scheduling_df['Latitude'] = scheduling_df['Latitude'].round(6)
+        scheduling_df['Longitude'] = scheduling_df['Longitude'].round(6)
+
         # Filter by salesman
         salesmen = scheduling_df['NAMA SALESMAN'].unique()
         selected_salesman = st.sidebar.selectbox("Select salesman:", salesmen)
