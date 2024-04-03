@@ -347,10 +347,10 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
 
 
 # Streamlit UI
-st.title('📅Salesman Scheduling Dashboard')
+st.title('📅Route Optimization for Salesman Scheduling Dashboard')
 
 # Checkbox to choose between using sheet_id or uploaded file
-use_sheet_id = st.checkbox("Use Sheet ID")
+use_sheet_id = st.checkbox("Use Online Google Spreadshee Database 📊",value = True)
 
 if use_sheet_id:
     # Define default sheet_id
@@ -366,8 +366,9 @@ else:
             df = pd.read_excel(uploaded_file)
 
 # Limit visit per day
-default_num = 25
-limit = st.number_input("Enter number of Store to Visit in A Day:", value=default_num, step=1)
+#default_num = 25
+#limit = st.number_input("Enter number of Store to Visit in A Day:", value=default_num, step=1)
+limit = df.shape[1]
 
 if 'df' in locals():
     try:
