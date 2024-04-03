@@ -387,14 +387,16 @@ if 'df' in locals():
         # Filter by salesman
         #salesmen = scheduling_df['NAMA SALESMAN'].unique()
         #selected_salesman = st.sidebar.selectbox("Select salesman:", salesmen)
-        #filtered_schedule = filter_schedule(scheduling_df, selected_salesman)
         selected_salesman = scheduling_df['NAMA SALESMAN'].unique()
+        filtered_schedule = filter_schedule(scheduling_df, selected_salesman)
+        
 
         # Filter by day
         #days = scheduling_df['Day'].unique()
         #selected_day = st.sidebar.selectbox("Select day:", days)
-        #filtered_schedule = filtered_schedule[filtered_schedule['Day'] == selected_day]
         selected_day = scheduling_df['Day'].unique()
+        filtered_schedule = filtered_schedule[filtered_schedule['Day'] == selected_day]
+        
 
         # Display filtered scheduling
         st.write("Generated Scheduling for", selected_salesman, "on", selected_day)
