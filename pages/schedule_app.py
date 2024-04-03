@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import folium
@@ -59,59 +58,99 @@ def get_route_polyline(origin, destination):
     return []
 
 # Function to generate scheduling with balanced visit orders across days
-def generate_scheduling(df, office_coord):
-    # Sort dataframe by 'NAMA SALESMAN', 'DAY', and 'NAMA TOKO' columns
-    df = df.sort_values(by=['NAMA SALESMAN', 'DAY', 'NAMA TOKO'])
+def generate_scheduling(df,office_coord):
+    # Sort dataframe by 'NAMA SALESMAN' and 'NAMA TOKO' columns
+    df = df.sort_values(by=['NAMA SALESMAN', 'NAMA TOKO'])
 
     # Get unique office location
+    #office_location = (df.iloc[0]['Latitude'], df.iloc[0]['Longitude'])
     office_location = office_coord
 
     # Create a dictionary to store visit orders and distances
     visit_orders = {}
 
     # Generate visit orders for each salesman
-    for salesman, group in df.groupby(['NAMA SALESMAN', 'DAY']):
+    for salesman, group in df.groupby('NAMA SALESMAN'):
         visit_orders[salesman] = {}
 
-        # Get unique days for the current salesman
-        unique_days = group['DAY'].unique()
-
-        # Generate visit orders for each unique day
-        for day in unique_days:
+        # Initialize visit orders for each day
+        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
             visit_orders[salesman][day] = {}
 
-            # Filter outlets for the current day
-            day_group = group[group['DAY'] == day]
-            outlets = day_group['NAMA TOKO'].tolist()  # Get outlets for the current day
+        # Split outlets into days and find nearest outlet for each day
+        outlets = group['NAMA TOKO'].tolist()  # Get outlets for the current salesman
+        num_outlets = len(outlets)
+        day_counter = 0  # Initialize day counter
+        visit_order = 1  # Initialize visit order
 
-            # Continue generating visit orders until all outlets for the day are visited
-            visit_order = 1
-            while outlets:
-                # Find nearest outlet from office and make it visit order 1
-                outlet_distances = {}
-                for outlet in outlets:
-                    outlet_location = (day_group[day_group['NAMA TOKO'] == outlet]['Latitude'].iloc[0], 
-                                        day_group[day_group['NAMA TOKO'] == outlet]['Longitude'].iloc[0])
-                    distance = calculate_distance(office_location, outlet_location)
-                    outlet_distances[outlet] = distance
+        while outlets:
+            current_day = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day_counter]
 
-                nearest_outlet = min(outlet_distances, key=outlet_distances.get)
-                visit_orders[salesman][day][visit_order] = {'NAMA TOKO': nearest_outlet, 
-                                                             'Distance': outlet_distances[nearest_outlet],
-                                                             'Coordinates': outlet_location}
+            # Take up to limit(5) outlets for the current day
+            outlets_today = outlets[:limit]
+            outlets = outlets[limit:]
+
+            # Find nearest outlet from office and make it visit order 1
+            outlet_distances = {}
+            for outlet in outlets_today:
+                outlet_location = (group[group['NAMA TOKO'] == outlet]['Latitude'].iloc[0], group[group['NAMA TOKO'] == outlet]['Longitude'].iloc[0])
+                distance = calculate_distance(office_location, outlet_location)
+                outlet_distances[outlet] = distance
+
+            nearest_outlet = min(outlet_distances, key=outlet_distances.get)
+            visit_orders[salesman][current_day][1] = {'NAMA TOKO': nearest_outlet, 'Distance': outlet_distances[nearest_outlet],
+                                                       'Coordinates': (group[group['NAMA TOKO'] == nearest_outlet]['Latitude'].iloc[0],
+                                                                       group[group['NAMA TOKO'] == nearest_outlet]['Longitude'].iloc[0])}
+
+            # Remove the nearest outlet from the list of outlets
+            outlets_today.remove(nearest_outlet)
+
+            # Generate visit orders for the rest of the outlets
+            visit_order = 1  # Reset visit order for each new day
+            while outlets_today:
+                if visit_order > limit:
+                    visit_order = 1
+                    day_counter += 1
+                    if day_counter >= limit:  # If reached the last day, stop assigning visit orders
+                        break
+
+                # Get the location of the last assigned outlet
+                last_assigned_outlet = visit_orders[salesman][current_day][visit_order]['Coordinates']
+
+                # Initialize variables to track the nearest outlet and its distance
+                nearest_outlet = None
+                nearest_distance = float('inf')
+
+                # Find the nearest outlet relative to the last assigned outlet
+                for outlet in outlets_today:
+                    outlet_location = (group[group['NAMA TOKO'] == outlet]['Latitude'].iloc[0], group[group['NAMA TOKO'] == outlet]['Longitude'].iloc[0])
+                    distance = calculate_distance(last_assigned_outlet, outlet_location)
+
+                    # Update nearest outlet and distance if the current outlet is closer
+                    if distance < nearest_distance:
+                        nearest_outlet = outlet
+                        nearest_distance = distance
+
+                # Assign the nearest outlet to the current day and visit order
+                visit_orders[salesman][current_day][visit_order + 1] = {'NAMA TOKO': nearest_outlet, 'Distance': nearest_distance,
+                                                                       'Coordinates': (group[group['NAMA TOKO'] == nearest_outlet]['Latitude'].iloc[0],
+                                                                                       group[group['NAMA TOKO'] == nearest_outlet]['Longitude'].iloc[0])}
 
                 # Remove the nearest outlet from the list of outlets
-                outlets.remove(nearest_outlet)
+                outlets_today.remove(nearest_outlet)
 
                 # Increment visit order
                 visit_order += 1
+
+            # Move to the next day
+            day_counter += 1
 
     # Convert visit orders dictionary into a DataFrame
     scheduling_data = []
     for salesman, days_data in visit_orders.items():
         for day, visit_orders in days_data.items():
             for visit_order, data in visit_orders.items():
-                scheduling_data.append([salesman[0], day, visit_order, data['NAMA TOKO'], data['Distance'], data['Coordinates']])
+                scheduling_data.append([salesman, day, visit_order, data['NAMA TOKO'], data['Distance'], data['Coordinates']])
 
     scheduling_df = pd.DataFrame(scheduling_data, columns=['NAMA SALESMAN', 'Day', 'Visit Order', 'NAMA TOKO', 'Distance', 'Coordinates'])
 
@@ -119,7 +158,6 @@ def generate_scheduling(df, office_coord):
     scheduling_df = pd.merge(scheduling_df, df[['NAMA TOKO', 'Latitude', 'Longitude']], on='NAMA TOKO')
 
     return scheduling_df
-
 
 # Function to filter scheduling DataFrame by salesman
 def filter_schedule(scheduling_df, salesman):
