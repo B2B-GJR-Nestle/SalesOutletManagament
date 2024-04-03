@@ -176,7 +176,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
     # Add marker for the office with emoji
     folium.Marker(
         location=[office_latitude, office_longitude],  # Corrected bracket placement
-        popup="PT. RMS BEKASI🏢",
+        popup="PT. Rukun Mitra Sejati🏢",
         icon=folium.Icon(color='green', icon='briefcase', prefix='fa')
     ).add_to(m)
 
