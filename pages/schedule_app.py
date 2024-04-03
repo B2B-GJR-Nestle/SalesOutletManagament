@@ -349,24 +349,28 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
 # Streamlit UI
 st.title('📅Salesman Scheduling Dashboard')
 
-# Upload file
-#uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"])
-uploaded_file = 1
+# Checkbox to choose between using sheet_id or uploaded file
+use_sheet_id = st.checkbox("Use Sheet ID")
 
-sheet_id = '1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY'
-df = pd.read_csv(f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
+if use_sheet_id:
+    # Define default sheet_id
+    sheet_id = '1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY'
+    df = pd.read_csv(f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
+else:
+    # Upload file
+    uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"])
+    if uploaded_file is not None:
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file)
+        else:
+            df = pd.read_excel(uploaded_file)
 
 # Limit visit per day
 default_num = 25
-limit = st.number_input("Enter number of Store to Visit in A Day:",value=default_num, step=1)
+limit = st.number_input("Enter number of Store to Visit in A Day:", value=default_num, step=1)
 
-if uploaded_file is not None:
-    # Read uploaded file
+if 'df' in locals():
     try:
-        """if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file)
-        else:
-            df = pd.read_excel(uploaded_file)"""
         df.dropna(subset=['Latitude'], inplace=True)
         st.sidebar.write("Data Preview:")
         st.sidebar.write(df.head())
@@ -374,8 +378,8 @@ if uploaded_file is not None:
         # Generate scheduling
         office_latitude = -6.558031
         office_longitude = 106.691809
-        office_coord = (office_latitude,office_longitude)
-        scheduling_df = generate_scheduling(df,office_coord)
+        office_coord = (office_latitude, office_longitude)
+        scheduling_df = generate_scheduling(df, office_coord)
 
         # Filter by salesman
         salesmen = scheduling_df['NAMA SALESMAN'].unique()
@@ -393,10 +397,7 @@ if uploaded_file is not None:
 
         # Display Folium map if schedule is not empty
         if not filtered_schedule.empty:
-            # st.write("📍 Map showing connections for", selected_salesman, "on", selected_day, "that need to visit",filtered_schedule['Distance'].count() ,"outlet(s) around", filtered_schedule['Distance'].sum(),"km")
-            st.markdown(f'<span style="font-size:16px;">📍 Map showing connections for {selected_salesman} on {selected_day} that need to visit {filtered_schedule["Distance"].count()} outlet(s) around <b>{round(filtered_schedule["Distance"].sum(),3)} km<b></span>', unsafe_allow_html=True)
-            office_latitude = -6.558031
-            office_longitude = 106.691809
+            st.markdown(f'<span style="font-size:16px;">📍 Map showing connections for {selected_salesman} on {selected_day} that need to visit {filtered_schedule["Distance"].count()} outlet(s) around <b>{round(filtered_schedule["Distance"].sum(), 3)} km<b></span>', unsafe_allow_html=True)
             folium_map_html = generate_folium_map(df, filtered_schedule, office_latitude, office_longitude)
             st.components.v1.html(folium_map_html, width=825, height=550)
         else:
