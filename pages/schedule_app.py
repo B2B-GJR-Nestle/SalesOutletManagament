@@ -198,6 +198,7 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
 
 
 
+
 # Streamlit UI
 st.title('📅Salesman Scheduling Dashboard')
 
