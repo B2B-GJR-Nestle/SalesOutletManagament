@@ -307,7 +307,6 @@ def generate_folium_map(df, filtered_schedule, office_latitude, office_longitude
     return m_html
 
 
-# Streamlit UI
 st.title('📅Salesman Scheduling Dashboard')
 
 # Upload file
@@ -315,7 +314,7 @@ uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"
 
 # Limit visit per day
 default_num = 25
-limit = st.number_input("Enter number of Store to Visit in A Day:",value=default_num, step=1)
+limit = st.number_input("Enter number of Store to Visit in A Day:", value=default_num, step=1)
 
 if uploaded_file is not None:
     # Read uploaded file
@@ -331,8 +330,8 @@ if uploaded_file is not None:
         # Generate scheduling
         office_latitude = -6.558031
         office_longitude = 106.691809
-        office_coord = (office_latitude,office_longitude)
-        scheduling_df = generate_scheduling(df,office_coord)
+        office_coord = (office_latitude, office_longitude)
+        scheduling_df = generate_scheduling(df, office_coord)
 
         # Filter by salesman
         salesmen = scheduling_df['NAMA SALESMAN'].unique()
@@ -344,20 +343,22 @@ if uploaded_file is not None:
         selected_day = st.sidebar.selectbox("Select day:", days)
         filtered_schedule = filtered_schedule[filtered_schedule['Day'] == selected_day]
 
+        # Filter by visit type (GANJIL or GENAP)
+        visit_types = df['KUNJUNGAN'].unique()
+        selected_visit_type = st.sidebar.selectbox("Select visit type:", visit_types)
+        filtered_schedule = filtered_schedule[filtered_schedule['KUNJUNGAN'] == selected_visit_type]
+
         # Display filtered scheduling
-        st.write("Generated Scheduling for", selected_salesman, "on", selected_day)
+        st.write("Generated Scheduling for", selected_salesman, "on", selected_day, "for", selected_visit_type, "visits")
         st.write(filtered_schedule)
 
         # Display Folium map if schedule is not empty
         if not filtered_schedule.empty:
-            # st.write("📍 Map showing connections for", selected_salesman, "on", selected_day, "that need to visit",filtered_schedule['Distance'].count() ,"outlet(s) around", filtered_schedule['Distance'].sum(),"km")
             st.markdown(f'<span style="font-size:16px;">📍 Map showing connections for {selected_salesman} on {selected_day} that need to visit {filtered_schedule["Distance"].count()} outlet(s) around <b>{round(filtered_schedule["Distance"].sum(),3)} km<b></span>', unsafe_allow_html=True)
-            office_latitude = -6.558031
-            office_longitude = 106.691809
             folium_map_html = generate_folium_map(df, filtered_schedule, office_latitude, office_longitude)
             st.components.v1.html(folium_map_html, width=825, height=550)
         else:
-            st.write(f"{selected_salesman} Has No Visit Schedule on {selected_day}")
+            st.write(f"{selected_salesman} Has No Visit Schedule on {selected_day} for {selected_visit_type} visits")
 
     except Exception as e:
         st.write("An error occurred:", e)
