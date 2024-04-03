@@ -364,8 +364,9 @@ else:
             df = pd.read_csv(uploaded_file)
         else:
             df = pd.read_excel(uploaded_file)
-        limit = df.shape[1]
-limit = df.shape[1]
+        #limit = df.shape[1]
+#limit = df.shape[1]
+limit = 30
 # Limit visit per day
 #default_num = 25
 #limit = st.number_input("Enter number of Store to Visit in A Day:", value=default_num, step=1)
