@@ -11,7 +11,8 @@ img = Image.open('Nestle_Logo.png')
 st.set_page_config(page_title="Salesman Outlet Management Tool", page_icon=img)
 
 # Limit visit per day
-limit = 25
+default_num = 25
+limit = st.number_input("Enter number of Store to Visit in A Day:",value=default_num, step=1)
 
 # Function to calculate distance using geodesic distance (haversine formula)
 def calculate_distance(origin, destination):
