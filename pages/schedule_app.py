@@ -365,7 +365,7 @@ else:
             df = pd.read_csv(uploaded_file)
         else:
             df = pd.read_excel(uploaded_file)
-    limit = df.shape[1]
+        limit = df.shape[1]
 
 # Limit visit per day
 #default_num = 25
