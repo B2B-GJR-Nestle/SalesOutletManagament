@@ -132,7 +132,8 @@ def generate_scheduling(df, office_coord):
 
                 # Assign the nearest outlet to the current day and visit order
                 visit_orders[salesman][current_day][visit_order + 1] = {'NAMA TOKO': nearest_outlet, 'Distance': nearest_distance,
-                                                       'Coordinates': (round(outlet_location[0], 6), round(outlet_location[1], 6))}
+                                                                       'Coordinates': (group[group['NAMA TOKO'] == nearest_outlet]['Latitude'].iloc[0],
+                                                                                       group[group['NAMA TOKO'] == nearest_outlet]['Longitude'].iloc[0])}
                 
                 # Remove the nearest outlet from the list of outlets
                 outlets_today.remove(nearest_outlet)
