@@ -353,10 +353,10 @@ st.title('📅Route Optimization for Salesman Scheduling Dashboard')
 use_sheet_id = st.checkbox("Use Online Google Spreadshee Database 📊",value = True)
 
 if use_sheet_id:
+    st.write("This App extracts data from Google Spreadsheet, visit <a href='https://docs.google.com/spreadsheets/d/1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY/edit?usp=sharing' target='_blank'>📋Geotag Master Database</a> to edit the entry", unsafe_allow_html=True)
     # Define default sheet_id
     sheet_id = '1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY'
     df = pd.read_csv(f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
-    st.write("This App extracts data from Google Spreadsheet, visit <a href='https://docs.google.com/spreadsheets/d/1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY/edit?usp=sharing' target='_blank'>📋Geotag Master Database</a> to edit the entry", unsafe_allow_html=True)
 else:
     # Upload file
     uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"])
@@ -366,12 +366,14 @@ else:
         else:
             df = pd.read_excel(uploaded_file)
         #limit = df.shape[1]
-#limit = df.shape[1]
-limit = 30
+
+limit = df.shape[1]
+
 # Limit visit per day
 #default_num = 25
 #limit = st.number_input("Enter number of Store to Visit in A Day:", value=default_num, step=1)
 st.write(f"Limit visit per day = {limit} Outlet(s)")
+limit = 30
 
 if 'df' in locals():
     try:
@@ -403,7 +405,7 @@ if 'df' in locals():
 
         # Display filtered scheduling
         st.write("Generated Scheduling for", selected_salesman, "on", selected_day)
-        st.write(filtered_schedule)
+        st.write(filtered_schedule, hide_index=True)
 
         # Display Folium map if schedule is not empty
         if not filtered_schedule.empty:
