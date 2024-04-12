@@ -370,7 +370,7 @@ else:
         limit = df.shape[1]
         #st.write(f"Limit visit per day = {limit} Outlet(s)")
 url = 'https://docs.google.com/spreadsheets/d/1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY/edit#gid=1239582729'
-st.components.v1.iframe(url, width=600, height=400)
+st.components.v1.iframe(url, width=825, height=400)
 # Limit visit per day
 #default_num = 25
 #limit = st.number_input("Enter number of Store to Visit in A Day:", value=default_num, step=1)
