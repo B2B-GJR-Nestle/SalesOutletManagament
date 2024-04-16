@@ -361,7 +361,7 @@ if use_sheet_id:
 
     st.write("❗ Please REFRESH the page AFTER you set the filter")
     url = 'https://docs.google.com/spreadsheets/d/1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY/edit#gid=1239582729'
-    st.components.v1.iframe(url, width=625, height=400)
+    st.components.v1.iframe(url, width=750, height=400)
     #st.write(f"Limit visit per day = {limit} Outlet(s)")
 else:
     # Upload file
@@ -415,7 +415,7 @@ if 'df' in locals():
         if not filtered_schedule.empty:
             st.markdown(f'<span style="font-size:16px;">📍 Map showing connections for {selected_salesman} on {selected_day} that need to visit {filtered_schedule["Distance"].count()} outlet(s) around <b>{round(filtered_schedule["Distance"].sum(), 3)} km<b></span>', unsafe_allow_html=True)
             folium_map_html = generate_folium_map(df, filtered_schedule, office_latitude, office_longitude)
-            st.components.v1.html(folium_map_html, width=625, height=550)
+            st.components.v1.html(folium_map_html, width=750, height=550)
         else:
             st.write(f"{selected_salesman} Has No Visit Schedule on {selected_day}")
 
