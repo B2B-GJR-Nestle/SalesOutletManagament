@@ -370,7 +370,7 @@ else:
         limit = df.shape[1]
         #st.write(f"Limit visit per day = {limit} Outlet(s)")
 
-st.write(f"⚠Please REFRESH the page AFTER you set the filter")
+st.write("❗ Please REFRESH the page AFTER you set the filter")
 url = 'https://docs.google.com/spreadsheets/d/1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY/edit#gid=1239582729'
 st.components.v1.iframe(url, width=825, height=400)
 
