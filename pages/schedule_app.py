@@ -358,7 +358,7 @@ if use_sheet_id:
     sheet_id = '1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY'
     df = pd.read_csv(f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
     limit = df.shape[1]
-    st.write(f"Limit visit per day = {limit} Outlet(s)")
+    #st.write(f"Limit visit per day = {limit} Outlet(s)")
 else:
     # Upload file
     uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"])
@@ -369,12 +369,14 @@ else:
             df = pd.read_excel(uploaded_file)
         limit = df.shape[1]
         #st.write(f"Limit visit per day = {limit} Outlet(s)")
+
+st.write(f"⚠Please REFRESH the page AFTER you set the filter")
 url = 'https://docs.google.com/spreadsheets/d/1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY/edit#gid=1239582729'
 st.components.v1.iframe(url, width=825, height=400)
+
 # Limit visit per day
-#default_num = 25
+#default_num = 30
 #limit = st.number_input("Enter number of Store to Visit in A Day:", value=default_num, step=1)
-#limit = 30
 
 if 'df' in locals():
     try:
