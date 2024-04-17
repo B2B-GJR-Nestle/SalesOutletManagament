@@ -353,7 +353,7 @@ st.title('📅Route Optimization for Salesman Scheduling Dashboard')
 use_sheet_id = st.checkbox("Use Online Google Spreadshee Database 📊",value = True)
 
 if use_sheet_id:
-    st.write("This App extracts data from Google Spreadsheet, visit <a href='https://docs.google.com/spreadsheets/d/1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY/edit?usp=sharing' target='_blank'>📋Geotag Master Database</a> to edit the entry", unsafe_allow_html=True)
+    #st.write("This App extracts data from Google Spreadsheet, visit <a href='https://docs.google.com/spreadsheets/d/1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY/edit?usp=sharing' target='_blank'>📋Geotag Master Database</a> to edit the entry", unsafe_allow_html=True)
     # Define default sheet_id
     sheet_id = '1pGXaBlOSnzestjx5pz8YDhff4RvhbMR3B42MRg5AatY'
     df = pd.read_csv(f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
